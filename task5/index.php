@@ -15,7 +15,7 @@ class Author{
     public function SetEmail(string $email){
         $this->email = $email;
     }
-    public function __tostring() : string{
+    public function ____toString() : string{
         return "Name: $this->name  Email: $this->email";
 }
 }
@@ -65,14 +65,14 @@ class Book{
     public function getAuthorName(): string{
         return $this->author->getName();
     }
-    public function __tostring():string{
-        return "ISBN:$this->isbn Name:$this->name Author[".$this->author->__tostring()."] Price: $this->price Quantity:$this->qty"; 
+    public function ____toString():string{
+        return "ISBN:$this->isbn Name:$this->name Author[".$this->author->____toString()."] Price: $this->price Quantity:$this->qty"; 
     }
 }
-$a=new Author("ahmed","ahmed@gmail.com");
+$authorTest=new Author("ahmed","ahmed@gmail.com");
 // one of one book :D
-$b=new Book("1234","physics",$a,99.9,1);
-echo $b->__tostring();
+$bookTest=new Book("1234","physics",$authorTest,99.9,1);
+echo $bookTest->____toString();
 //--------------------------------------------------------------------
 trait Circle {
     private float $radius = 1.0;
@@ -92,7 +92,7 @@ trait Circle {
     public function getArea(): float {
         return pi() * pow($this->radius, 2);
     }
-    public function __toString(): string {
+    public function ____toString(): string {
         return "Circle[radius={$this->radius}, color={$this->color}]";
     }
 }
@@ -119,14 +119,15 @@ class Cylinder {
         return $this->getArea() * $this->height;
     }
 
-    public function __toString(): string {
+    public function ____toString(): string {
         return "Cylinder[radius={$this->getRadius()}, height={$this->height}, color={$this->getColor()}]";
     }
 }
 echo"<br>";
 $cylinder = new Cylinder(5.0, 10.0, "blue");
 echo $cylinder->getVolume();
-echo $cylinder;
+echo $cylinder->____toString();
+echo "<br>";
 //----------------------------------------------
 echo "<br>";
 abstract class Person {
@@ -150,7 +151,7 @@ abstract class Person {
         $this->address = $address;
     }
 
-    abstract public function toString(): string;
+    abstract public function __toString(): string;
 }
 class Student extends Person {
     private string $program;
@@ -188,7 +189,7 @@ class Student extends Person {
         $this->fee = $fee;
     }
 
-    public function toString(): string {
+    public function __toString(): string {
         return "Student[Person[name={$this->name}, address={$this->address}], program={$this->program}, year={$this->year}, fee={$this->fee}]";
     }
 }
@@ -218,15 +219,15 @@ class Staff extends Person {
         $this->pay = $pay;
     }
 
-    public function toString(): string {
+    public function __toString(): string {
         return "Staff[Person[name={$this->name}, address={$this->address}], school={$this->school}, pay={$this->pay}]";
     }
 }
 $student = new Student("John Doe", "123 Main St", "Computer Science", 2, 15000.0);
-echo $student->toString();
+echo $student->__toString();
 
 $staff = new Staff("Jane Smith", "456 Elm St", "Engineering", 50000.0);
-echo $staff->toString();
+echo $staff->__toString();
 //-----------------------------------------
 echo"<br>";
 interface Shape {
@@ -234,7 +235,7 @@ interface Shape {
     public function setColor(string $color): void;
     public function isFilled(): bool;
     public function setFilled(bool $filled): void;
-    public function toString(): string;
+    public function __toString(): string;
 }
 class Circle2 implements Shape {
     private float $radius = 1.0;
@@ -246,40 +247,31 @@ class Circle2 implements Shape {
         $this->color = $color;
         $this->filled = $filled;
     }
-
     public function getRadius(): float {
         return $this->radius;
     }
-
     public function setRadius(float $radius): void {
         $this->radius = $radius;
     }
-
     public function getArea(): float {
         return pi() * pow($this->radius, 2);
     }
-
     public function getPerimeter(): float {
         return 2 * pi() * $this->radius;
     }
-
     public function getColor(): string {
         return $this->color;
     }
-
     public function setColor(string $color): void {
         $this->color = $color;
     }
-
     public function isFilled(): bool {
         return $this->filled;
     }
-
     public function setFilled(bool $filled): void {
         $this->filled = $filled;
     }
-
-    public function toString(): string {
+    public function __toString(): string {
         return "Circle2[Shape[color={$this->color}, filled={$this->filled}], radius={$this->radius}]";
     }
 }
@@ -295,19 +287,15 @@ class Rectangle implements Shape {
         $this->color = $color;
         $this->filled = $filled;
     }
-
     public function getWidth(): float {
         return $this->width;
     }
-
     public function setWidth(float $width): void {
         $this->width = $width;
     }
-
     public function getLength(): float {
         return $this->length;
     }
-
     public function setLength(float $length): void {
         $this->length = $length;
     }
@@ -336,7 +324,7 @@ class Rectangle implements Shape {
         $this->filled = $filled;
     }
 
-    public function toString(): string {
+    public function __toString(): string {
         return "Rectangle[Shape[color={$this->color}, filled={$this->filled}], width={$this->width}, length={$this->length}]";
     }
 }
@@ -364,7 +352,7 @@ class Square extends Rectangle {
         parent::setWidth($length);
     }
 
-    public function toString(): string {
+    public function __toString(): string {
         return "Square[Rectangle[Shape[color={$this->getColor()}, filled={$this->isFilled()}], width={$this->getWidth()}, length={$this->getLength()}]]";
     }
 }
