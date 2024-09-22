@@ -4,6 +4,10 @@ if (!isset($_SESSION['id'])) {
     header("Location: ../html/login.php?loginError=You must log in first.");
     exit();
 }
+require "../backend/connection.php";
+$result = $db->conn->prepare("SELECT SUM(quantity) AS total_items FROM order_items oi JOIN orders o ON oi.order_id = o.order_id WHERE o.user_id = :userId AND o.status = 'pending'");
+$result->execute(['userId' => $_SESSION['id']]);
+$cartCount = $result->fetch(PDO::FETCH_ASSOC)['total_items'] ?? 0;
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -12,8 +16,8 @@ if (!isset($_SESSION['id'])) {
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Stylish Modern Homepage</title>
-  <link rel="stylesheet" href="../css/home.css"> <!-- External CSS -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> <!-- Font Awesome -->
+  <link rel="stylesheet" href="../css/home.css"> 
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css"> 
 </head>
 
 <body>
@@ -27,17 +31,18 @@ if (!isset($_SESSION['id'])) {
         </div>
         <div class="cart-icon">
             <i class="fas fa-shopping-cart"></i>
-            <span id="cart-count">0</span> <!-- Placeholder for cart count -->
+            <span id="cart-count"><?php echo htmlspecialchars($cartCount); ?></span>
+            <a href="cart_checkout.php" class="btn btn-warning">Go to Cart</a><!-- Placeholder for cart count -->
         </div>
         <ul class="nav-links">
-            <li><a href="#home">Home</a></li>
-            <li><a href="#about">About</a></li>
-            <li><a href="#services">Services</a></li>
-            <li><a href="#contact">Contact</a></li>
-        </ul>
+                <li><a href="home.php">Home</a></li>
+                <li><a href="about.php">About</a></li>
+                <li><a href="shop.php">Shop</a></li>
+                <li><a href="contact.php">Contact</a></li>
+                <li><a href="profile.php">Profile</a></li>
+            </ul>
     </nav>
 </header>
-
 
   <!-- Hero Section -->
   <section id="home" class="hero">

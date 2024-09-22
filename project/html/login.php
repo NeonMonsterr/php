@@ -1,3 +1,9 @@
+<?php 
+session_start();
+if(isset($_SESSION['id'])){
+  header("location:home.php");
+}
+?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,7 +34,7 @@
           <button type="submit" name="loginform">Login</button>
         </div>
       </form>
-      <p class="text-center">Don't have an account? <a href="#">Register</a></p>
+      <p class="text-center">Don't have an account? <a href="register.php">Register</a></p>
     </div>
   </div>
 </body>

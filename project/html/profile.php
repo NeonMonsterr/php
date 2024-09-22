@@ -14,8 +14,8 @@ $cartCount = $result->fetch(PDO::FETCH_ASSOC)['total_items'] ?? 0;
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>About Us - VcpRagon</title>
-    <link rel="stylesheet" href="../css/home.css"> <!-- Use the same CSS file -->
+    <title>Your Profile - VcpRagon</title>
+    <link rel="stylesheet" href="../css/home.css"> <!-- Your custom CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
 </head>
 <body>
@@ -42,14 +42,30 @@ $cartCount = $result->fetch(PDO::FETCH_ASSOC)['total_items'] ?? 0;
         </nav>
     </header>
 
-    <!-- About Section -->
-    <section id="about" class="about-section">
-        <h2>About Us</h2>
-        <div class="about-container">
-            <img src="../pics/VcpRagon4.jpg" alt="About Us" class="about-image"> <!-- Added class for styling -->
-            <div class="about-text">
-                <p>We are a creative agency with a passion for modern and minimal design. Our team specializes in creating elegant solutions that capture the essence of simplicity and style.</p>
-                <p>With years of experience in the industry, we strive to bring innovative ideas to life, ensuring each project reflects our commitment to quality and excellence.</p>
+    <!-- Profile Section -->
+    <section id="profile" class="profile-section py-5">
+        <div class="container">
+            <h2 class="text-center mb-4">Your Profile</h2>
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-body">
+                            <h5 class="card-title">Username</h5>
+                            <p class="card-text"><?php echo $_SESSION['username']; ?></p>
+
+                            <h5 class="card-title">Email</h5>
+                            <p class="card-text"><?php echo $_SESSION['email']; ?></p>
+
+                            <h5 class="card-title">Bio</h5>
+                            <p class="card-text">Tell us about yourself...</p> <!-- Placeholder for bio -->
+                        </div>
+                    </div>
+                    <div class="text-center mt-4">
+                        <form action="../backend/logout.php" method="post">
+                            <button type="submit" class="btn btn-danger">Logout</button>
+                        </form>
+                    </div>
+                </div>
             </div>
         </div>
     </section>
@@ -58,5 +74,6 @@ $cartCount = $result->fetch(PDO::FETCH_ASSOC)['total_items'] ?? 0;
     <footer>
         <p>&copy; 2024 MyWebsite. All rights reserved.</p>
     </footer>
+
 </body>
 </html>
