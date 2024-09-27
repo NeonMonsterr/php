@@ -17,6 +17,8 @@ $cartCount = $result->fetch(PDO::FETCH_ASSOC)['total_items'] ?? 0;
     <title>About Us - VcpRagon</title>
     <link rel="stylesheet" href="../css/home.css"> <!-- Use the same CSS file -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+
 </head>
 <body>
     <!-- Navigation Bar -->

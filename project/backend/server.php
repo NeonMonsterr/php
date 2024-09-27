@@ -1,6 +1,11 @@
 <?php
 require "connection.php"; 
-
+session_start();
+if(isset($_SESSION['id'])){
+    header("location:../html/home.php");
+  }else{
+    header("location:../html/register.php");
+  }
 if (isset($_POST['registerform'])) {
     $firstname = htmlspecialchars(trim($_POST['first_name']));
     $lastname = htmlspecialchars(trim($_POST['last_name']));
@@ -93,10 +98,18 @@ if (isset($_POST['loginform'])) {
     $result = $stmt2->fetch(PDO::FETCH_ASSOC);
 
     if ($result && password_verify($loginpass, $result['password'])) {
-        session_start();
+        
         $_SESSION['id'] = $result['user_id'];
         $_SESSION['username'] = $result['username'];
         $_SESSION['email'] = $result['email'];
+        $_SESSION['role']=$result['role'];
+        $_SESSION['joinDate']=$result['created_at'];
+        $_SESSION['city']=$result['city'];
+        $_SESSION['state']=$result['state'];
+        $_SESSION['country']=$result['country'];
+        $_SESSION['phone']=$result['phone_number'];
+        $_SESSION['firstName']=$result['first_name'];
+        $_SESSION['lastName']=$result['last_name'];
         header("Location: ../html/home.php");
     } else {
         header("Location: ../html/login.php?loginError=Invalid email or password. Please try again.");

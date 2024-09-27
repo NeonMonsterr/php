@@ -19,8 +19,48 @@ function getCartItems($db, $userId) {
     $query->execute(['userId' => $userId]);
     return $query->fetchAll(PDO::FETCH_ASSOC);
 }
+function calculateTotal($orderItems) {
+    $total = 0;
+    foreach ($orderItems as $item) {
+        $total += $item['price'] * $item['quantity'];
+    }
+    return $total;
+}
 
-// Function to update item quantities
+// Function to update the order total
+function updateOrderTotal($db, $userId, $total) {
+    $updateTotal = $db->conn->prepare("UPDATE orders SET total = :total WHERE user_id = :userId AND status = 'pending'");
+    $updateTotal->execute(['total' => $total, 'userId' => $userId]);
+}
+
+// Handle form submissions
+$confirmationMessage = "";
+$orderItems = getCartItems($db, $userId);
+$totalPrice = calculateTotal($orderItems);
+
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    if (isset($_POST['update_quantity']) && !empty($_POST['quantities'])) {
+        updateItemQuantities($db, $userId, $_POST['quantities']);
+        $confirmationMessage = "Cart updated successfully!";
+        $orderItems = getCartItems($db, $userId); // Refresh order items after update
+        $totalPrice = calculateTotal($orderItems); // Recalculate total
+        updateOrderTotal($db, $userId, $totalPrice); // Update total in the database
+    } elseif (isset($_POST['checkout'])) {
+        updateOrderTotal($db, $userId, $totalPrice); // Ensure the total is updated before checkout
+        if (checkout($db, $userId)) {
+            $confirmationMessage = "Thank you for your purchase!";
+            $orderItems = []; // Clear the items for confirmation message
+        }
+    }
+}
+
+// Cart item count (for the cart icon)
+$cartCountQuery = $db->conn->prepare("SELECT SUM(quantity) AS total_items FROM order_items oi 
+                                        JOIN orders o ON oi.order_id = o.order_id 
+                                        WHERE o.user_id = :userId AND o.status = 'pending'");
+$cartCountQuery->execute(['userId' => $userId]);
+$cartCount = $cartCountQuery->fetch(PDO::FETCH_ASSOC)['total_items'] ?? 0;
+
 function updateItemQuantities($db, $userId, $quantities) {
     foreach ($quantities as $productId => $newQuantity) {
         $updateItem = $db->conn->prepare("UPDATE order_items 
