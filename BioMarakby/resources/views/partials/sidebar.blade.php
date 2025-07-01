@@ -1,7 +1,11 @@
-<div id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 fixed inset-y-0 right-0 transform md:translate-x-0 -translate-x-full transition-transform duration-200 ease-in-out md:relative z-30">
+<!-- Mobile Overlay -->
+<div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-20 hidden md:hidden transition-opacity duration-200"></div>
+
+<!-- Sidebar Component -->
+<div id="sidebar" class="bg-gray-800 text-white w-64 space-y-6 py-7 px-2 fixed inset-y-0 right-0 transform translate-x-full md:translate-x-0 transition-transform duration-200 ease-in-out z-30">
     <div class="flex items-center justify-between px-4">
         <h2 class="text-xl font-semibold">لوحة تحكم المعلم</h2>
-        <button class="md:hidden text-white focus:outline-none" id="sidebar-toggle">
+        <button class="md:hidden text-white focus:outline-none" id="sidebar-close">
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
             </svg>
@@ -24,3 +28,10 @@
         @endauth
     </nav>
 </div>
+
+<!-- Mobile Toggle Button (Hamburger Icon) -->
+<button id="sidebar-open" class="md:hidden fixed top-4 right-4 text-gray-800 focus:outline-none z-40">
+    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+    </svg>
+</button>

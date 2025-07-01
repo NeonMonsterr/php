@@ -7,6 +7,7 @@ use App\Models\Course;
 use App\Models\Lecture;
 use App\Models\Exam;
 use App\Models\Subscription;
+use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -26,6 +27,10 @@ class UserController extends Controller
     {
         $user = Auth::user();
         $subscription = $user->subscription()->with('course')->first();
+        // Update subscription status if it exists
+        if ($subscription) {
+            $subscription->updateStatusBasedOnDates();
+        }
         $enrolledCourse = $user->enrolledCourse;
 
         if ($user->role === 'teacher') {
@@ -65,6 +70,12 @@ class UserController extends Controller
         $this->authorize('viewAny', User::class);
 
         $students = User::students()->with('enrolledCourse', 'subscription.course')->get();
+        // Update subscription statuses for all students
+        foreach ($students as $student) {
+            if ($student->subscription) {
+                $student->subscription->updateStatusBasedOnDates();
+            }
+        }
         return view('users.index', compact('students'));
     }
 
@@ -97,13 +108,14 @@ class UserController extends Controller
 
         if ($user->course_id) {
             $this->authorize('create', Subscription::class);
-            $user->subscription()->create([
+            $subscription = $user->subscription()->create([
                 'course_id' => $user->course_id,
                 'type' => 'monthly',
                 'status' => 'active',
                 'start_date' => now(),
                 'end_date' => now()->addMonth(),
             ]);
+            $subscription->updateStatusBasedOnDates();
         }
 
         return redirect()->route('users.index')->with('success', "Student {$user->name} created successfully!");
@@ -114,6 +126,9 @@ class UserController extends Controller
         $this->authorize('view', $user);
 
         $subscription = $user->subscription()->with('course')->first();
+        if ($subscription) {
+            $subscription->updateStatusBasedOnDates();
+        }
         $enrolledCourse = $user->enrolledCourse;
         return view('users.show', compact('user', 'subscription', 'enrolledCourse'));
     }
@@ -127,21 +142,20 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
-        $this->authorize('update', $user);
-
         $validated = $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'email', 'unique:users,email,' . $user->id],
-            'password' => ['nullable', 'string', 'min:8', 'confirmed'],
-            'role' => ['required', 'in:student,teacher'],
-            'course_id' => ['nullable', 'exists:courses,id'],
-            'subscription_type' => ['nullable', 'in:monthly,yearly'],
-            'subscription_status' => ['nullable', 'in:active,inactive'],
-            'subscription_start_date' => ['nullable', 'date'],
-            'subscription_end_date' => ['nullable', 'date', 'after_or_equal:subscription_start_date'],
-            'subscription_course_id' => ['nullable', 'exists:courses,id'],
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+            'password' => 'nullable|string|min:8|confirmed',
+            'role' => 'required|in:student,teacher',
+            'course_id' => 'nullable|exists:courses,id',
+            'subscription_type' => 'nullable|in:monthly,yearly',
+            'subscription_status' => 'nullable|in:active,expired,canceled',
+            'subscription_course_id' => 'nullable|exists:courses,id',
+            'subscription_start_date' => 'nullable|date',
+            'subscription_end_date' => 'nullable|date|after_or_equal:subscription_start_date',
         ]);
 
+        // Update user details
         $user->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
@@ -150,32 +164,27 @@ class UserController extends Controller
             'course_id' => $validated['course_id'],
         ]);
 
-        if ($user->role === 'student') {
-            $this->authorize('update', $user->subscription ?? Subscription::class);
-            if ($request->filled(['subscription_type', 'subscription_status', 'subscription_start_date', 'subscription_end_date'])) {
-                if ($user->subscription) {
-                    $user->subscription->update([
-                        'type' => $validated['subscription_type'],
-                        'status' => $validated['subscription_status'],
-                        'start_date' => $validated['subscription_start_date'],
-                        'end_date' => $validated['subscription_end_date'],
-                        'course_id' => $validated['subscription_course_id'],
-                    ]);
-                } else {
-                    $user->subscription()->create([
-                        'type' => $validated['subscription_type'],
-                        'status' => $validated['subscription_status'],
-                        'start_date' => $validated['subscription_start_date'],
-                        'end_date' => $validated['subscription_end_date'],
-                        'course_id' => $validated['subscription_course_id'],
-                    ]);
-                }
-            } elseif ($user->subscription) {
-                $user->subscription->delete();
-            }
+        // Update or create subscription for students
+        if ($validated['role'] === 'student' && $validated['subscription_type'] && $validated['subscription_course_id']) {
+            $subscriptionData = [
+                'type' => $validated['subscription_type'],
+                'course_id' => $validated['subscription_course_id'],
+                'start_date' => $validated['subscription_start_date'] ? Carbon::parse($validated['subscription_start_date']) : now(),
+                'end_date' => $validated['subscription_end_date'] ? Carbon::parse($validated['subscription_end_date']) : ($validated['subscription_type'] === 'monthly' ? now()->addMonth() : now()->addYear()),
+                'status' => $validated['subscription_status'] ?? 'active',
+            ];
+
+            $subscription = $user->subscription()->updateOrCreate(
+                ['user_id' => $user->id],
+                $subscriptionData
+            );
+            $subscription->updateStatusBasedOnDates();
+        } elseif ($user->subscription && $validated['role'] === 'teacher') {
+            // Delete subscription if user is changed to teacher
+            $user->subscription()->delete();
         }
 
-        return redirect()->route('users.index')->with('success', "User {$user->name} updated successfully!");
+        return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
 
     public function destroy(User $user)
@@ -214,13 +223,14 @@ class UserController extends Controller
         $user->update(['course_id' => $validated['course_id']]);
 
         $this->authorize('create', Subscription::class);
-        $user->subscription()->create([
+        $subscription = $user->subscription()->create([
             'course_id' => $validated['course_id'],
             'type' => 'monthly',
             'status' => 'active',
             'start_date' => now(),
             'end_date' => now()->addMonth(),
         ]);
+        $subscription->updateStatusBasedOnDates();
 
         return redirect()->route('dashboard')->with('success', 'Successfully enrolled in course!');
     }
@@ -241,27 +251,32 @@ class UserController extends Controller
         $this->authorize('update', $subscription ?? Subscription::class);
 
         $validated = $request->validate([
-            'type' => ['required', Rule::in(['monthly', 'semester'])],
+            'type' => ['required', Rule::in(['monthly', 'yearly'])],
             'course_id' => ['required', Rule::in([$user->course_id])],
         ]);
+
+        $endDate = $validated['type'] === 'monthly' ? now()->addMonth() : now()->addYear();
 
         if ($subscription) {
             $subscription->update([
                 'type' => $validated['type'],
+                'course_id' => $validated['course_id'],
                 'status' => 'active',
                 'start_date' => now(),
-                'end_date' => $validated['type'] === 'monthly' ? now()->addMonth() : now()->addMonths(6),
+                'end_date' => $endDate,
             ]);
         } else {
             $this->authorize('create', Subscription::class);
-            $user->subscription()->create([
-                'course_id' => $user->course_id,
+            $subscription = $user->subscription()->create([
+                'course_id' => $validated['course_id'],
                 'type' => $validated['type'],
                 'status' => 'active',
                 'start_date' => now(),
-                'end_date' => $validated['type'] === 'monthly' ? now()->addMonth() : now()->addMonths(6),
+                'end_date' => $endDate,
             ]);
         }
+
+        $subscription->updateStatusBasedOnDates();
 
         return redirect()->route('dashboard')->with('success', 'Subscription updated successfully!');
     }
@@ -285,8 +300,29 @@ class UserController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            $request->session()->regenerate();
             $user = Auth::user();
+            if ($user->role === 'student') {
+                $subscription = $user->subscription()->first();
+                if ($subscription) {
+                    $subscription->updateStatusBasedOnDates();
+                    if (!$subscription->active()->exists()) {
+                        Auth::logout();
+                        $request->session()->invalidate();
+                        $request->session()->regenerateToken();
+                        return back()->withErrors([
+                        'email' => 'الاشتراك منتهي أو ملغى أو غير موجود. يرجى تجديد الاشتراك لتسجيل الدخول.',
+                        ])->onlyInput('email');
+                    }
+                } else {
+                    Auth::logout();
+                    $request->session()->invalidate();
+                    $request->session()->regenerateToken();
+                    return back()->withErrors([
+                        'email' => 'الاشتراك غير موجود. يرجى الاشتراك في دورة لتسجيل الدخول.',
+                    ])->onlyInput('email');
+                }
+            }
+            $request->session()->regenerate();
             return $user->role === 'teacher'
                 ? redirect()->route('dashboard.teacher')
                 : redirect()->route('dashboard');
@@ -305,7 +341,6 @@ class UserController extends Controller
         return redirect()->route('welcome');
     }
 
-
     public function search(Request $request)
     {
         $user = Auth::user();
@@ -320,6 +355,12 @@ class UserController extends Controller
         }
 
         $students = $query->with('enrolledCourse')->get();
+        // Update subscription statuses for searched students
+        foreach ($students as $student) {
+            if ($student->subscription) {
+                $student->subscription->updateStatusBasedOnDates();
+            }
+        }
 
         return view('users.index', compact('user', 'students'));
     }

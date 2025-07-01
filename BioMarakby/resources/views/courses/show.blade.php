@@ -64,19 +64,13 @@
                         </ul>
                     @endif
                 </div>
+                 @if (auth()->user()->role==='teacher')
                 <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600">العودة إلى الدورات</a>
+                @endif
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const toggleButton = document.getElementById('sidebar-toggle');
-            toggleButton.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
-        });
-    </script>
+<script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 
 </html>

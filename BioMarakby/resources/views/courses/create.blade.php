@@ -67,18 +67,10 @@
                     </div>
                     <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">إنشاء الدورة</button>
                 </form>
-                @include('partials.back-to-home')
+                <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600">العودة إلى الدورات</a>
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const toggleButton = document.getElementById('sidebar-toggle');
-            toggleButton.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
-        });
-    </script>
+<script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>

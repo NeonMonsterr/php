@@ -78,27 +78,4 @@
             </div>
         </div>
     </div>
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const openBtn = document.getElementById('sidebar-open');
-        const closeBtn = document.getElementById('sidebar-toggle');
-
-        if (openBtn && sidebar) {
-            openBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sidebar.classList.remove('-translate-x-full');
-            });
-        }
-
-        if (closeBtn && sidebar) {
-            closeBtn.addEventListener('click', () => {
-                sidebar.classList.add('-translate-x-full');
-            });
-        }
-
-        document.addEventListener('click', (e) => {
-            if (sidebar && !sidebar.contains(e.target) && !openBtn.contains(e.target) && !sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.add('-translate-x-full');
-            }
-        });
-    </script>
+  <script src="{{ asset('js/sidebar.js') }}"></script>

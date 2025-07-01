@@ -7,7 +7,12 @@ use App\Http\Controllers\LectureController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
 
+Artisan::command('inspire', function () {
+    $this->comment(Inspiring::quote());
+})->purpose('Display an inspiring quote');
 // Welcome route
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 Route::view('/contact', 'contact')->name('contact');

@@ -102,7 +102,7 @@
                                     <select name="subscription_type" id="subscription_type" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="">لا يوجد</option>
                                         <option value="monthly" {{ old('subscription_type', $user->subscription?->type) === 'monthly' ? 'selected' : '' }}>شهري</option>
-                                        <option value="yearly" {{ old('subscription_type', $user->subscription?->type) === 'yearly' ? 'selected' : '' }}>سنوي</option>
+                                        <option value="semester" {{ old('subscription_type', $user->subscription?->type) === 'semester' ? 'selected' : '' }}>فصلي</option>
                                     </select>
                                     @error('subscription_type')
                                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -113,7 +113,8 @@
                                     <select name="subscription_status" id="subscription_status" class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500">
                                         <option value="">لا يوجد</option>
                                         <option value="active" {{ old('subscription_status', $user->subscription?->status) === 'active' ? 'selected' : '' }}>نشط</option>
-                                        <option value="inactive" {{ old('subscription_status', $user->subscription?->status) === 'inactive' ? 'selected' : '' }}>غير نشط</option>
+                                        <option value="expired" {{ old('subscription_status', $user->subscription?->status) === 'expired' ? 'selected' : '' }}>منتهي</option>
+                                        <option value="canceled" {{ old('subscription_status', $user->subscription?->status) === 'canceled' ? 'selected' : '' }}>ملغي</option>
                                     </select>
                                     @error('subscription_status')
                                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -154,26 +155,6 @@
             </div>
         </div>
     </div>
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const openBtn = document.getElementById('sidebar-open');
-        const closeBtn = document.getElementById('sidebar-toggle');
-        if (openBtn && sidebar) {
-            openBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sidebar.classList.remove('-translate-x-full');
-            });
-        }
-        if (closeBtn && sidebar) {
-            closeBtn.addEventListener('click', () => {
-                sidebar.classList.add('-translate-x-full');
-            });
-        }
-        document.addEventListener('click', (e) => {
-            if (sidebar && !sidebar.contains(e.target) && !openBtn.contains(e.target) && !sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.add('-translate-x-full');
-            }
-        });
-    </script>
+    <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>

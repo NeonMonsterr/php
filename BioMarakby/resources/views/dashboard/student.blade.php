@@ -20,7 +20,7 @@
         <div class="flex-1 p-4 sm:p-6">
             <div class="max-w-4xl mx-auto bg-white p-6 rounded-lg shadow-md">
                 <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold text-gray-800">لوحة تحكم الطالب</h1>
+                    <h1 class="text-2xl font-bold text-gray-800">الصفحة الرئيسية</h1>
                     <form method="POST" action="{{ route('logout') }}">
                         @csrf
                         <button type="submit" class="text-red-500 hover:text-red-600">تسجيل الخروج</button>
@@ -54,14 +54,6 @@
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const toggleButton = document.getElementById('sidebar-toggle');
-            toggleButton.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
-        });
-    </script>
+    <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>

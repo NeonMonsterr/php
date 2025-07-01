@@ -43,30 +43,10 @@
                     </div>
                     <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">تسجيل</button>
                 </form>
-                @include('partials.back-to-home')
+                                <a href="{{ route('users.index') }}" class="mt-4 inline-block text-blue-500 hover:text-blue-600 text-center w-full">العودة إلى الطلاب</a>
             </div>
         </div>
     </div>
-    <script>
-        const sidebar = document.getElementById('sidebar');
-        const openBtn = document.getElementById('sidebar-open');
-        const closeBtn = document.getElementById('sidebar-toggle');
-        if (openBtn && sidebar) {
-            openBtn.addEventListener('click', (e) => {
-                e.stopPropagation();
-                sidebar.classList.remove('-translate-x-full');
-            });
-        }
-        if (closeBtn && sidebar) {
-            closeBtn.addEventListener('click', () => {
-                sidebar.classList.add('-translate-x-full');
-            });
-        }
-        document.addEventListener('click', (e) => {
-            if (sidebar && !sidebar.contains(e.target) && !openBtn.contains(e.target) && !sidebar.classList.contains('-translate-x-full')) {
-                sidebar.classList.add('-translate-x-full');
-            }
-        });
-    </script>
+<script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>

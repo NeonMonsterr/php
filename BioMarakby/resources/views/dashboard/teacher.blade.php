@@ -51,13 +51,6 @@
             </div>
         </div>
     </div>
-    <script>
-        document.getElementById('sidebar-open').addEventListener('click', () => {
-            document.querySelector('.bg-gray-800').classList.remove('-translate-x-full');
-        });
-        document.getElementById('sidebar-toggle').addEventListener('click', () => {
-            document.querySelector('.bg-gray-800').classList.add('-translate-x-full');
-        });
-    </script>
+<script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>

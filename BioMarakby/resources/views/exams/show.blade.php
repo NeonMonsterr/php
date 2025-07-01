@@ -45,18 +45,10 @@
                         <button type="submit" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600" onclick="return confirm('هل أنت متأكد من حذف هذا الامتحان؟')">حذف الامتحان</button>
                     </form>
                 @endcan
-                @include('partials.back-to-home')
+                <a href="{{ route('exams.index') }}" class="text-blue-500 hover:text-blue-600">العودة إلى الامتحانات</a>
             </div>
         </div>
     </div>
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const sidebar = document.getElementById('sidebar');
-            const toggleButton = document.getElementById('sidebar-toggle');
-            toggleButton.addEventListener('click', () => {
-                sidebar.classList.toggle('-translate-x-full');
-            });
-        });
-    </script>
+<script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 </html>
