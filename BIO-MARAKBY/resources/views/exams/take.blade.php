@@ -11,7 +11,6 @@
         body {
             font-family: 'Tajawal', sans-serif;
             background-color: white;
-            position: relative;
             overflow-x: hidden;
         }
 
@@ -26,72 +25,79 @@
             z-index: -1;
             pointer-events: none;
         }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.85);
-            backdrop-filter: blur(10px);
-            -webkit-backdrop-filter: blur(10px);
-            border-radius: 1rem;
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
-            padding: 2rem;
-        }
     </style>
 </head>
 
 <body>
     <img src="/images/biology-bg.gif" alt="Background" class="background-gif">
 
-    <div class="flex min-h-screen">
-        @if (auth()->user()->role === 'teacher')
-        @include('partials.sidebar')
-        @elseif (auth()->user()->role === 'student')
-        @include('partials.student_sidebar')
-        @endif
+    <div class="flex min-h-screen flex-col md:flex-row">
+        <!-- Sidebar -->
+        <div class="w-full md:w-64 flex-shrink-0">
+            @if (auth()->user()->role === 'teacher')
+                @include('partials.sidebar')
+            @elseif (auth()->user()->role === 'student')
+                @include('partials.student_sidebar')
+            @endif
+        </div>
 
-        <div class="container mx-auto px-4 py-8">
-            <div class="bg-white rounded-lg shadow-lg p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-2xl font-bold">{{ $exam->title }}</h1>
-                    <div class="bg-red-100 text-red-800 px-4 py-2 rounded-lg" id="timer">
+        <!-- Main Content -->
+        <main class="flex-1 p-4 sm:p-6">
+            <div class="bg-white/90 backdrop-blur-md rounded-lg shadow-lg p-6 max-w-4xl mx-auto">
+                <!-- Header -->
+                <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">{{ $exam->title }}</h1>
+                    <div class="bg-red-100 text-red-800 px-4 py-2 rounded-lg w-full sm:w-auto text-center sm:text-right">
                         الوقت المتبقي: <span id="time-display"></span>
                     </div>
                 </div>
 
-                <form id="exam-form" action="{{ route('exams.submit', $exam) }}" method="POST">
+                <!-- Exam Form -->
+                <form id="exam-form" action="{{ route('exams.submit', $exam) }}" method="POST" class="space-y-6">
                     @csrf
 
                     @foreach($exam->questions as $question)
-                    <div class="question mb-8 p-4 border rounded">
-                        <h3 class="font-bold mb-3">
-                            {{ $loop->iteration }}. {{ $question->question_text }} ({{ $question->points }} نقطة)
-                        </h3>
+                        <div class="question p-4 border rounded-lg bg-gray-50">
+                            <h3 class="font-bold mb-3 text-gray-800">
+                                {{ $loop->iteration }}. {{ $question->question_text }}
+                                <span class="text-sm text-gray-600">({{ $question->points }} نقطة)</span>
+                            </h3>
 
-                        @if($question->type === 'mcq')
-                        @foreach($question->options as $option)
-                        <div class="option mb-2">
-                            <label class="flex items-center">
-                                <input type="radio" name="answers[{{ $question->id }}]" value="{{ $option->id }}"
-                                    class="mr-2" {{ old("answers.$question->id") == $option->id ? 'checked' : '' }}>
-                                {{ $option->option_text }}
-                            </label>
+                            @if($question->type === 'mcq')
+                                <div class="space-y-2">
+                                    @foreach($question->options as $option)
+                                        <label class="flex items-center gap-2 cursor-pointer">
+                                            <input type="radio"
+                                                   name="answers[{{ $question->id }}]"
+                                                   value="{{ $option->id }}"
+                                                   class="text-blue-500 focus:ring focus:ring-blue-300"
+                                                   {{ old("answers.$question->id") == $option->id ? 'checked' : '' }}>
+                                            <span>{{ $option->option_text }}</span>
+                                        </label>
+                                    @endforeach
+                                </div>
+                            @else
+                                <textarea name="answers[{{ $question->id }}]"
+                                          class="w-full p-3 border rounded-lg focus:ring focus:ring-blue-300"
+                                          rows="4">{{ old("answers.$question->id") }}</textarea>
+                            @endif
                         </div>
-                        @endforeach
-                        @else
-                        <textarea name="answers[{{ $question->id }}]" class="w-full p-2 border rounded" rows="4">{{ old("answers.$question->id") }}</textarea>
-                        @endif
-                    </div>
                     @endforeach
 
-                    <button type="submit" class="bg-blue-500 text-white px-6 py-2 rounded hover:bg-blue-600">
-                        إنهاء الامتحان
-                    </button>
+                    <!-- Submit Button -->
+                    <div class="text-center">
+                        <button type="submit"
+                                class="bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 text-lg font-medium w-full sm:w-auto">
+                            إنهاء الامتحان
+                        </button>
+                    </div>
                 </form>
             </div>
-        </div>
+        </main>
     </div>
 
+    <!-- Timer Script -->
     <script>
-        // عد تنازلي للوقت
         const examEndTime = new Date("{{ $exam->end_time->format('Y-m-d H:i:s') }}").getTime();
         const timer = setInterval(() => {
             const now = new Date().getTime();
@@ -111,7 +117,7 @@
             }
         }, 1000);
 
-        // منع مغادرة الصفحة
+        // Prevent leaving page
         window.addEventListener('beforeunload', function(e) {
             e.preventDefault();
             e.returnValue = 'إذا غادرت الصفحة، قد تفقد إجاباتك!';
@@ -120,5 +126,4 @@
 
     <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
-
 </html>

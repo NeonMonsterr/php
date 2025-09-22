@@ -64,4 +64,8 @@ class UserPolicy
     {
         return $user->role === 'student';
     }
+    
+    public function register(User $user){
+        return $user->role=== 'student';
+    }
 }

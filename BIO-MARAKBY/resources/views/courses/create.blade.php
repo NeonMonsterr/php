@@ -23,17 +23,14 @@
             height: 100%;
             object-fit: cover;
             opacity: 0.1;
-            /* خليه خفيف عشان ميأثرش على النص */
             z-index: -1;
-            /* يخليه ورا كل حاجة */
             pointer-events: none;
-            /* عشان ميتفاعلش مع الماوس */
         }
 
         .form-container {
-            background: rgba(255, 255, 255, 0.75);
-            backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
             border-radius: 1rem;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.1);
             padding: 2rem;
@@ -47,7 +44,7 @@
         input,
         textarea,
         select {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.95);
             border: 1px solid #ccc;
             border-radius: 0.5rem;
             padding: 0.75rem;
@@ -64,63 +61,86 @@
         }
 
         button {
-            transition: background-color 0.3s ease;
+            transition: background-color 0.3s ease, transform 0.2s ease;
         }
 
         button:hover {
             background-color: #2563eb;
+            transform: translateY(-2px);
         }
     </style>
-
 </head>
-<img src="/images/biology-bg.gif" alt="Biology Animation" class="background-gif">
 
 <body class="bg-gray-100">
+    <img src="/images/biology-bg.gif" alt="Biology Animation" class="background-gif">
+
     <div class="flex min-h-screen">
         @include('partials.sidebar')
+
         <div class="flex-1 p-4 sm:p-6">
             <div class="max-w-md mx-auto form-container">
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">إنشاء دورة</h1>
+
+                {{-- أخطاء التحقق --}}
                 @if ($errors->any())
-                <div class="mb-4 text-red-500">
-                    <ul>
+                <div class="mb-4 text-red-500 bg-red-50 border border-red-200 rounded-lg p-3">
+                    <ul class="list-disc list-inside">
                         @foreach ($errors->all() as $error)
                         <li>{{ $error }}</li>
                         @endforeach
                     </ul>
                 </div>
                 @endif
+
                 <form method="POST" action="{{ route('courses.store') }}">
                     @csrf
+
+                    {{-- الاسم --}}
                     <div class="mb-4">
                         <label for="name" class="block text-gray-700 mb-2">الاسم</label>
-                        <input type="text" name="name" id="name"
-                            class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
-                            value="{{ old('name') }}" required>
+                        <input type="text" name="name" id="name" value="{{ old('name') }}" required>
                         @error('name')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    {{-- الوصف --}}
                     <div class="mb-4">
                         <label for="description" class="block text-gray-700 mb-2">الوصف</label>
-                        <textarea name="description" id="description"
-                            class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>{{ old('description') }}</textarea>
+                        <textarea name="description" id="description" required>{{ old('description') }}</textarea>
                         @error('description')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
+
+                    {{-- المرحلة --}}
+                    <div class="mb-4">
+                        <label for="stage" class="block text-gray-700 mb-2">المرحلة</label>
+                        <select name="stage" id="stage" required>
+                            <option value="" disabled {{ old('stage') ? '' : 'selected' }}>اختر المرحلة</option>
+                            <option value="preparatory" {{ old('stage') == 'preparatory' ? 'selected' : '' }}>إعدادي</option>
+                            <option value="secondary" {{ old('stage') == 'secondary' ? 'selected' : '' }}>ثانوي</option>
+                        </select>
+                        @error('stage')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    {{-- المستوى --}}
                     <div class="mb-4">
                         <label for="level" class="block text-gray-700 mb-2">المستوى</label>
-                        <select name="level" id="level"
-                            class="w-full p-2 border rounded focus:outline-none focus:ring-2 focus:ring-blue-500" required>
-                            <option value="preparatory" {{ old('level') === 'preparatory' ? 'selected' : '' }}>إعدادي</option>
-                            <option value="secondary" {{ old('level') === 'secondary' ? 'selected' : '' }}>ثانوي</option>
+                        <select name="level" id="level" required>
+                            <option value="" disabled {{ old('level') ? '' : 'selected' }}>اختر المستوى</option>
+                            <option value="1" {{ old('level') == '1' ? 'selected' : '' }}>الأول</option>
+                            <option value="2" {{ old('level') == '2' ? 'selected' : '' }}>الثاني</option>
+                            <option value="3" {{ old('level') == '3' ? 'selected' : '' }}>الثالث</option>
                         </select>
                         @error('level')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    
+
+                    {{-- نشر الدورة --}}
                     <div class="mb-4">
                         <label class="flex items-center">
                             <input type="checkbox" name="is_published" value="1" class="ml-2"
@@ -131,12 +151,20 @@
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
-                    <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">إنشاء الدورة</button>
+
+                    {{-- زر الإنشاء --}}
+                    <button type="submit"
+                        class="w-full bg-blue-500 text-white p-2 rounded-lg hover:bg-blue-600 font-semibold shadow-md">
+                        إنشاء الدورة
+                    </button>
                 </form>
-                <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600">العودة إلى الدورات</a>
+
+                <a href="{{ route('courses.index') }}"
+                    class="text-blue-500 hover:text-blue-600 mt-4 inline-block font-medium">العودة إلى الدورات</a>
             </div>
         </div>
     </div>
+
     <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 

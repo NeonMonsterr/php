@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>تسجيل الدخول</title>
+    <title>إنشاء حساب جديد</title>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@500;700&display=swap" rel="stylesheet" />
     <style>
         * {
@@ -14,13 +14,15 @@
 
         body {
             margin: 0;
-            padding: 0;
+            padding: 20px;
+            /* add padding instead of forcing everything to center */
             background-color: #000428;
             display: flex;
             align-items: center;
             justify-content: center;
             min-height: 100vh;
-            overflow: hidden;
+            overflow-y: auto;
+            /* allow scrolling if content is taller */
         }
 
         .background-gif {
@@ -35,20 +37,22 @@
             pointer-events: none;
         }
 
-        .login-container {
+        .register-container {
             background: rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(15px);
             -webkit-backdrop-filter: blur(15px);
-            padding: 40px;
+            padding: 25px;
+            /* reduce padding */
             border-radius: 20px;
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             width: 100%;
-            max-width: 420px;
+            max-width: 380px;
+            /* smaller for better fit */
             color: #fff;
             animation: fadeIn 1s ease;
         }
 
-        .login-container h2 {
+        .register-container h2 {
             text-align: center;
             margin-bottom: 30px;
             font-size: 30px;
@@ -88,18 +92,7 @@
             display: block;
         }
 
-        .success-message {
-            background: rgba(0, 198, 255, 0.2);
-            color: #00c6ff;
-            padding: 12px;
-            border-radius: 8px;
-            margin-bottom: 20px;
-            text-align: center;
-            font-size: 16px;
-            font-weight: bold;
-        }
-
-        .login-btn {
+        .register-btn {
             width: 100%;
             padding: 14px;
             background-color: #00c6ff;
@@ -112,7 +105,7 @@
             transition: background 0.3s ease, transform 0.2s;
         }
 
-        .login-btn:hover {
+        .register-btn:hover {
             background-color: #0072ff;
             color: #fff;
             transform: scale(1.03);
@@ -154,7 +147,7 @@
         }
 
         @media (max-width: 500px) {
-            .login-container {
+            .register-container {
                 padding: 30px 20px;
             }
         }
@@ -165,55 +158,69 @@
 
     <img src="/images/biology-bg.gif" class="background-gif" alt="خلفية متحركة" />
 
-    @auth
-    @if (auth()->user()->role === 'teacher')
-    <script>
-        window.location.href = "{{ route('dashboard.teacher') }}";
-    </script>
-    @else
-    <script>
-        window.location.href = "{{ route('dashboard') }}";
-    </script>
-    @endif
-    @endauth
-
-    @guest
-    <div class="login-container">
-        <h2>تسجيل الدخول</h2>
-
-        {{-- ✅ Success message --}}
-        @if(session('success'))
-            <div class="success-message">
-                {{ session('success') }}
-            </div>
-        @endif
-
-        <form method="POST" action="{{ route('login') }}">
+    <div class="register-container">
+        <h2>إنشاء حساب جديد</h2>
+        <form method="POST" action="{{ route('register') }}">
             @csrf
+
+            <div class="form-group">
+                <label for="name">الاسم</label>
+                <input type="text" id="name" name="name" value="{{ old('name') }}"
+                    placeholder="الاسم الكامل" required>
+                @error('name')
+                    <span class="error-message">{{ $message }}</span>
+                @enderror
+            </div>
+
             <div class="form-group">
                 <label for="email">البريد الإلكتروني</label>
                 <input type="email" id="email" name="email" value="{{ old('email') }}"
                     placeholder="example@email.com" required>
                 @error('email')
-                <span class="error-message">{{ $message }}</span>
+                    <span class="error-message">{{ $message }}</span>
                 @enderror
             </div>
+
             <div class="form-group">
                 <label for="password">كلمة المرور</label>
                 <input type="password" id="password" name="password" placeholder="********" required>
                 @error('password')
-                <span class="error-message">{{ $message }}</span>
+                    <span class="error-message">{{ $message }}</span>
                 @enderror
             </div>
-            <button type="submit" class="login-btn">دخول</button>
+
+            <div class="form-group">
+                <label for="password_confirmation">تأكيد كلمة المرور</label>
+                <input type="password" id="password_confirmation" name="password_confirmation" placeholder="********"
+                    required>
+            </div>
+
+            <div class="form-group">
+                <label for="phone_number">رقم الهاتف</label>
+                <input type="text" id="phone_number" name="phone_number" value="{{ old('phone_number') }}"
+                    placeholder="01xxxxxxxxx" required>
+                @error('phone_number')
+                    <span class="error-message">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <div class="form-group">
+                <label for="parent_phone_number">رقم ولي الأمر</label>
+                <input type="text" id="parent_phone_number" name="parent_phone_number"
+                    value="{{ old('parent_phone_number') }}" placeholder="01xxxxxxxxx" required>
+                @error('parent_phone_number')
+                    <span class="error-message">{{ $message }}</span>
+                @enderror
+            </div>
+
+            <button type="submit" class="register-btn">تسجيل</button>
         </form>
+
         <div class="extra-links">
-            <p><a href="{{ route('contact') }}">نسيت كلمة المرور؟</a></p>
-            <p><a href="{{ route('register.form') }}">إنشاء حساب جديد</a></p>
+            <p><a href="{{ route('login') }}">لديك حساب بالفعل؟ تسجيل الدخول</a></p>
             <p><a href="{{ route('welcome') }}" class="home-link">العودة إلى الصفحة الرئيسية</a></p>
         </div>
     </div>
-    @endguest
 
 </body>
 

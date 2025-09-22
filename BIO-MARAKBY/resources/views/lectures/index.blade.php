@@ -11,6 +11,8 @@
         body {
             font-family: 'Tajawal', sans-serif;
             background-color: white;
+            position: relative;
+            overflow: hidden;
         }
 
         .background-gif {
@@ -70,6 +72,16 @@
                 color: #374151;
             }
         }
+
+        a,
+        button {
+            transition: all 0.2s ease;
+        }
+
+        a:hover,
+        button:hover {
+            opacity: 0.85;
+        }
     </style>
 </head>
 
@@ -111,8 +123,22 @@
                     </form>
 
                     @can('create', App\Models\Lecture::class)
-                    <a href="{{ route('lectures.create') }}"
-                        class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">إضافة درس</a>
+                    <div class="relative">
+                        <button id="create-lecture-btn" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">
+                            إضافة درس
+                        </button>
+                        <div id="create-lecture-dropdown" class="hidden absolute mt-2 w-48 bg-white border border-gray-200 rounded shadow-lg z-10">
+                            @foreach (App\Models\Course::where('user_id', auth()->id())->get() as $course)
+                            <a href="{{ route('lectures.create', $course) }}"
+                                class="block px-4 py-2 text-gray-800 hover:bg-gray-100">
+                                {{ $course->name }}
+                            </a>
+                            @endforeach
+                            @if (App\Models\Course::where('user_id', auth()->id())->count() === 0)
+                            <p class="px-4 py-2 text-gray-500">لا توجد دورات متاحة</p>
+                            @endif
+                        </div>
+                    </div>
                     @endcan
                 </div>
 
@@ -144,38 +170,34 @@
                     @endforeach
                 </div>
                 @else
+                @foreach ($lectures->groupBy('course_id') as $course_id => $course_lectures)
+                <h2 class="text-lg font-bold text-gray-800 mt-6 mb-4">
+                    {{ $course_lectures->first()->course->name ?? 'دورة غير متوفرة' }}
+                </h2>
                 <div class="overflow-x-auto">
-                    <table class="w-full border-collapse responsive-table">
+                    <table class="w-full border-collapse responsive-table mb-6">
                         <thead>
                             <tr class="bg-gray-200">
                                 <th class="p-2 text-right">العنوان</th>
-                                <th class="p-2 text-right">الدورة</th>
                                 <th class="p-2 text-right">الترتيب</th>
                                 <th class="p-2 text-right">منشور</th>
                                 <th class="p-2 text-right">الإجراءات</th>
                             </tr>
                         </thead>
                         <tbody>
-                            @foreach ($lectures as $lecture)
+                            @foreach ($course_lectures as $lecture)
                             <tr class="border-b">
                                 <td class="p-2" data-label="العنوان">
                                     <a href="{{ route('lectures.show', $lecture) }}"
                                         class="text-blue-500 hover:underline">{{ $lecture->title }}</a>
                                 </td>
-                                <td class="p-2" data-label="الدورة">{{ $lecture->course?->name ?? 'غير متوفر' }}</td>
                                 <td class="p-2" data-label="الترتيب">{{ $lecture->position }}</td>
                                 <td class="p-2" data-label="منشور">{{ $lecture->is_published ? 'نعم' : 'لا' }}</td>
                                 <td class="p-2" data-label="الإجراءات">
                                     <div class="flex flex-col md:flex-row md:space-x-2 md:space-x-reverse">
                                         @can('update', $lecture)
-                                        @if ($lecture->course)
                                         <a href="{{ route('lectures.edit', [$lecture->course, $lecture]) }}"
                                             class="text-blue-500 hover:underline mb-2 md:mb-0">تعديل</a>
-                                        @else
-                                        <span class="text-gray-500 cursor-not-allowed mb-2 md:mb-0">
-                                            تعديل (الدورة غير متوفرة)
-                                        </span>
-                                        @endif
                                         @endcan
                                         @can('delete', $lecture)
                                         <form action="{{ route('lectures.destroy', $lecture) }}" method="POST" class="inline">
@@ -192,13 +214,33 @@
                         </tbody>
                     </table>
                 </div>
+                @endforeach
                 @endif
                 @endif
             </div>
         </div>
     </div>
 
-    <script src="{{ asset('js/sidebar.js') }}"></script>
+    <script>
+        const sidebarOpen = document.getElementById('sidebar-open');
+        const sidebar = document.querySelector('.sidebar');
+        sidebarOpen?.addEventListener('click', () => {
+            sidebar.classList.toggle('hidden');
+        });
+
+        const createLectureBtn = document.getElementById('create-lecture-btn');
+        const createLectureDropdown = document.getElementById('create-lecture-dropdown');
+        createLectureBtn?.addEventListener('click', () => {
+            createLectureDropdown.classList.toggle('hidden');
+        });
+
+        // Close dropdown when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!createLectureBtn.contains(e.target) && !createLectureDropdown.contains(e.target)) {
+                createLectureDropdown.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 
 </html>

@@ -13,6 +13,12 @@
             background-color: #f5f7fa;
         }
 
+        /* Sidebar offset for content */
+        .content {
+            margin-right: 16rem;
+            /* نفس عرض الشريط الجانبي */
+        }
+
         .exam-container {
             max-width: 800px;
             margin: 0 auto;
@@ -63,14 +69,25 @@
 
 <body class="bg-gray-50">
 
-    <div class="p-4 md:p-8">
+    <!-- Sidebar -->
+    <div class="fixed inset-y-0 right-0 w-64 bg-gray-800 text-white z-20 p-4">
+        @if (auth()->check() && auth()->user()->role === 'teacher')
+            @include('partials.sidebar')
+        @elseif (auth()->check() && auth()->user()->role === 'student')
+            @include('partials.student_sidebar')
+        @endif
+    </div>
+
+    <!-- Main content -->
+    <div class="content p-4 md:p-8">
         <div class="exam-container bg-white rounded-xl overflow-hidden">
             <!-- Exam Header -->
             <div class="bg-white border-b border-gray-200 p-4">
                 <div class="flex justify-between items-center">
                     <h1 class="text-xl font-bold text-gray-800">{{ $exam->title }}</h1>
                     <div class="timer px-4 py-2 rounded-lg flex items-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 ml-2" fill="none" viewBox="0 0 24 24"
+                            stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                 d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                         </svg>
@@ -93,63 +110,63 @@
                 <input type="hidden" name="remaining_time" id="remaining-time">
 
                 <div class="p-4 md:p-6 space-y-6">
-                    @if($exam->questions && $exam->questions->count())
-                    @foreach($exam->questions as $index => $question)
-                    <div class="question-card bg-white border border-gray-200 rounded-lg p-5" id="question-{{ $question->id }}">
-                        <div class="flex items-start">
-                            <span class="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full mr-3">
-                                {{ $index + 1 }}
-                            </span>
-                            <div class="flex-1">
-                                <h3 class="font-medium text-gray-800 mb-3">{{ $question->question_text }}</h3>
-                                <!-- داخل حلقة الأسئلة -->
-                                @foreach($question->images as $image)
-                                <div class="my-2">
-                                    <img src="{{ asset('storage/' . $image->image_path) }}"
-                                        alt="صورة السؤال" class="max-w-full h-auto rounded border">
-                                </div>
-                                @endforeach
-                                <div class="space-y-2">
-                                    @if($question->type === 'mcq')
-                                    @foreach($question->options ?? [] as $option)
-                                    <label class="option-label block">
-                                        <input type="radio"
-                                            name="answers[{{ $question->id }}]"
-                                            value="{{ $option->id }}"
-                                            class="option-input hidden"
-                                            @if(isset($existingAnswers[$question->id]) && $existingAnswers[$question->id]->option_id == $option->id) checked @endif
-                                        data-question="{{ $question->id }}">
-                                        <div class="option-content border border-gray-200 rounded-lg p-3 hover:border-blue-300">
-                                            {{ $option->option_text }}
+                    @if ($exam->questions && $exam->questions->count())
+                        @foreach ($exam->questions as $index => $question)
+                            <div class="question-card bg-white border border-gray-200 rounded-lg p-5"
+                                id="question-{{ $question->id }}">
+                                <div class="flex items-start">
+                                    <span class="bg-blue-100 text-blue-800 font-medium px-3 py-1 rounded-full mr-3">
+                                        {{ $index + 1 }}
+                                    </span>
+                                    <div class="flex-1">
+                                        <h3 class="font-medium text-gray-800 mb-3">{{ $question->question_text }}</h3>
+
+                                        @foreach ($question->images as $image)
+                                            <div class="my-2">
+                                                <img src="{{ asset('storage/' . $image->image_path) }}" alt="صورة السؤال" class="max-w-full h-auto rounded border">
+
+                                            </div>
+                                        @endforeach
+
+
+
+                                        <div class="space-y-2">
+                                            @if ($question->type === 'mcq')
+                                                @foreach ($question->options ?? [] as $option)
+                                                    <label class="option-label block">
+                                                        <input type="radio" name="answers[{{ $question->id }}]"
+                                                            value="{{ $option->id }}" class="option-input hidden"
+                                                            @if (isset($existingAnswers[$question->id]) && $existingAnswers[$question->id]->option_id == $option->id) checked @endif
+                                                            data-question="{{ $question->id }}">
+                                                        <div
+                                                            class="option-content border border-gray-200 rounded-lg p-3 hover:border-blue-300">
+                                                            {{ $option->option_text }}
+                                                        </div>
+                                                    </label>
+                                                @endforeach
+                                            @elseif($question->type === 'essay')
+                                                <textarea name="answers[{{ $question->id }}]" rows="5" class="w-full p-3 border rounded-lg"
+                                                    placeholder="أكتب إجابتك هنا...">
+@if (isset($existingAnswers[$question->id]))
+{{ $existingAnswers[$question->id]->answer_text }}
+@endif
+</textarea>
+                                            @endif
                                         </div>
-                                    </label>
-                                    @endforeach
-                                    @elseif($question->type === 'essay')
-                                    <textarea
-                                        name="answers[{{ $question->id }}]"
-                                        rows="5"
-                                        class="w-full p-3 border rounded-lg"
-                                        placeholder="أكتب إجابتك هنا...">@if(isset($existingAnswers[$question->id])){{ $existingAnswers[$question->id]->answer_text }}@endif</textarea>
-                                    @endif
+                                    </div>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    @endforeach
+                        @endforeach
                     @else
-                    <p class="text-red-500">لا توجد أسئلة متاحة لهذا الامتحان حالياً.</p>
+                        <p class="text-red-500">لا توجد أسئلة متاحة لهذا الامتحان حالياً.</p>
                     @endif
                 </div>
 
                 <!-- Exam Footer -->
-                <div class="bg-gray-50 border-t border-gray-200 p-4 flex justify-between">
+                <div class="bg-gray-50 border-t border-gray-200 p-4 flex justify-end">
                     <button type="button" onclick="confirmSubmit()"
                         class="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded-lg font-medium">
                         إنهاء الامتحان
-                    </button>
-                    <button type="button" onclick="saveProgress()"
-                        class="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-lg font-medium">
-                        حفظ الإجابات
                     </button>
                 </div>
             </form>
@@ -157,12 +174,9 @@
     </div>
 
     <script>
-        const examDuration = {{$exam -> duration_minutes}}* 60;
+        const examDuration = {{ $exam->duration_minutes }} * 60;
         let timeLeft = localStorage.getItem('remaining_time_{{ $exam->id }}');
         timeLeft = timeLeft !== null ? parseInt(timeLeft) : examDuration;
-
-
-        let timerInterval;
         let hasSubmitted = false;
 
         function startTimer() {
@@ -191,56 +205,31 @@
             }
         }
 
-        function autoSave() {
-            const formData = new FormData(document.getElementById('exam-form'));
-            formData.append('_token', '{{ csrf_token() }}');
-            formData.append('is_auto_save', true);
-
-            fetch('{{ route("exams.save_progress", $exam->id) }}', {
-                method: 'POST',
-                body: formData
-            }).then(response => {
-                if (!response.ok) {
-                    console.error('فشل في حفظ التقدم');
-                }
-            });
-        }
-        async function saveProgress() {
+        async function autoSave() {
             try {
                 document.getElementById('remaining-time').value = timeLeft;
-
                 const formData = new FormData(document.getElementById('exam-form'));
                 formData.append('_token', '{{ csrf_token() }}');
+                formData.append('is_auto_save', true);
 
-                const response = await fetch('{{ route("exams.save_progress", $exam->id) }}', {
+                const response = await fetch('{{ route('exams.save_progress', $exam->id) }}', {
                     method: 'POST',
                     body: formData
                 });
 
                 if (response.ok) {
-                    showAlert('تم حفظ الإجابات بنجاح!', 'green');
+                    console.log('تم حفظ الإجابات تلقائيًا');
                 } else {
-                    showAlert('حدث خطأ أثناء الحفظ!', 'red');
+                    console.error('فشل في حفظ التقدم');
                 }
             } catch (error) {
                 console.error('Error:', error);
-                showAlert('حدث خطأ في الاتصال بالخادم!', 'red');
             }
         }
 
-        function showAlert(message, color) {
-            const alert = document.createElement('div');
-            alert.className = `fixed bottom-4 right-4 bg-${color}-500 text-white px-4 py-2 rounded-lg shadow-lg`;
-            alert.textContent = message;
-            document.body.appendChild(alert);
-
-            setTimeout(() => {
-                alert.remove();
-            }, 3000);
-        }
-
-        function confirmSubmit() {
+        async function confirmSubmit() {
             if (confirm('هل أنت متأكد أنك تريد إنهاء الامتحان؟ لا يمكنك العودة بعد الإرسال.')) {
+                await autoSave();
                 submitExam();
             }
         }
@@ -263,7 +252,7 @@
                 });
 
                 if (response.ok) {
-                    window.location.href = '{{ route("exams.results", $exam->id) }}';
+                    window.location.href = '{{ route('exams.results', $exam->id) }}';
                 } else {
                     alert('حدث خطأ أثناء تقديم الامتحان!');
                 }
@@ -273,20 +262,11 @@
             }
         }
 
-        document.querySelectorAll('.option-input').forEach(input => {
-            input.addEventListener('change', () => autoSave());
-        });
-
-        // تهيئة الأحداث
         document.addEventListener('DOMContentLoaded', () => {
-            // بدء العد التنازلي
             updateTimerDisplay();
             startTimer();
+            setInterval(autoSave, 10000);
 
-            // حفظ تلقائي كل دقيقة
-            setInterval(autoSave, 60000);
-
-            // منع الخروج أثناء الامتحان
             window.addEventListener('beforeunload', (e) => {
                 if (!hasSubmitted) {
                     e.preventDefault();
@@ -295,7 +275,6 @@
                 }
             });
 
-            // تفعيل تغيير الإجابات
             document.querySelectorAll('input[type="radio"], textarea').forEach(element => {
                 element.addEventListener('change', () => {
                     autoSave();

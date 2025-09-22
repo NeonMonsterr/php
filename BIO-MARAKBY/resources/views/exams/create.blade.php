@@ -155,6 +155,14 @@
                         </label>
                     </div>
 
+                    <div class="mb-6 flex items-center space-x-2 space-x-reverse">
+                        <input type="hidden" name="is_published" value="0" />
+                        <input type="checkbox" name="is_published" id="is_published" value="1"
+                            {{ old('is_published') ? 'checked' : '' }}
+                            class="h-5 w-5 text-blue-500 border-gray-300 rounded" />
+                        <label for="is_published" class="text-gray-700 font-semibold cursor-pointer">منشور</label>
+                    </div>
+
                     <button type="submit"
                         class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 font-semibold">
                         إنشاء الامتحان

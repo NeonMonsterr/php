@@ -4,15 +4,18 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 
-class Lecture extends Model
+class Section extends Model
 {
-    protected $table = 'lectures';
+    protected $table = 'sections';
 
     protected $fillable = [
-        'course_id',
+        'lecture_id',
         'title',
+        'youtube_url',
         'position',
         'is_published',
+        'video_title',
+        'file',
     ];
 
     protected $casts = [
@@ -20,15 +23,10 @@ class Lecture extends Model
         'position' => 'integer',
     ];
 
-    public function course()
+    public function lecture()
     {
-        return $this->belongsTo(Course::class);
+        return $this->belongsTo(Lecture::class);
     }
-
-public function sections()
-{
-    return $this->hasMany(Section::class)->orderBy('position');
-}
 
     public function scopePublished($query)
     {

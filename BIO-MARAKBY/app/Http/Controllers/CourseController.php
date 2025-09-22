@@ -18,19 +18,33 @@ class CourseController extends Controller
     }
 
     /**
-     * Display a listing of courses.
+     * Display a listing of courses, with filtering for teachers and enrolled course for students.
      *
+     * @param \Illuminate\Http\Request $request
      * @return \Illuminate\View\View
      */
-    public function index()
+    public function index(Request $request)
     {
         $user = Auth::user();
         $this->authorize('viewAny', Course::class);
 
         if ($user->role === 'teacher') {
-            $courses = Course::with('user')->get();
+            // Teachers see all their courses, filtered by stage and level
+            $query = Course::where('user_id', $user->id)->with('user');
+
+            if ($request->filled('stage')) {
+                $query->where('stage', $request->input('stage'));
+            }
+            if ($request->filled('level')) {
+                $query->where('level', $request->input('level'));
+            }
+
+            $courses = $query->orderBy('stage')->orderBy('level')
+                            ->get()
+                            ->groupBy(['stage', 'level']);
         } else {
-            $courses = $user->enrolledCourse ? collect([$user->enrolledCourse]) : collect([]);
+            // Students see only their enrolled course, if any
+            $courses = $user->enrolledCourse ? collect([$user->enrolledCourse])->groupBy(['stage', 'level']) : collect([]);
         }
 
         return view('courses.index', compact('courses', 'user'));
@@ -44,7 +58,6 @@ class CourseController extends Controller
     public function create()
     {
         $this->authorize('create', Course::class);
-
         return view('courses.create');
     }
 
@@ -61,18 +74,20 @@ class CourseController extends Controller
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'level' => ['required', 'in:preparatory,secondary'],
-            'is_published' => ['boolean'],
+            'stage' => ['required', 'in:preparatory,secondary'],
+            'level' => ['required', 'in:1,2,3'],
+            'is_published' => ['nullable', 'boolean'],
         ]);
 
         $course = Auth::user()->courses()->create([
             'name' => $validated['name'],
             'description' => $validated['description'],
+            'stage' => $validated['stage'],
             'level' => $validated['level'],
             'is_published' => $request->has('is_published'),
         ]);
 
-        return redirect()->route('courses.index')->with('success', "Course {$course->name} created successfully!");
+        return redirect()->route('courses.index')->with('success', "الدورة {$course->name} تم إنشاؤها بنجاح!");
     }
 
     /**
@@ -106,7 +121,6 @@ class CourseController extends Controller
     public function edit(Course $course)
     {
         $this->authorize('update', $course);
-
         return view('courses.edit', compact('course'));
     }
 
@@ -117,27 +131,29 @@ class CourseController extends Controller
      * @param \App\Models\Course $course
      * @return \Illuminate\Http\RedirectResponse
      */
-public function update(Request $request, Course $course)
+    public function update(Request $request, Course $course)
     {
         $this->authorize('update', $course);
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'description' => ['required', 'string'],
-            'level' => ['required', 'in:preparatory,secondary'],
+            'stage' => ['required', 'in:preparatory,secondary'],
+            'level' => ['required', 'in:1,2,3'],
             'is_published' => ['nullable', 'boolean'],
         ]);
 
         $course->update([
             'name' => $validated['name'],
             'description' => $validated['description'],
+            'stage' => $validated['stage'],
             'level' => $validated['level'],
             'is_published' => $request->has('is_published'),
         ]);
 
         $course->refresh();
 
-        return redirect()->route('courses.index')->with('success', "Course {$course->name} updated successfully!");
+        return redirect()->route('courses.index')->with('success', "الدورة {$course->name} تم تحديثها بنجاح!");
     }
 
     /**
@@ -151,10 +167,10 @@ public function update(Request $request, Course $course)
         $this->authorize('delete', $course);
 
         if ($course->students()->count() > 0) {
-            return redirect()->route('courses.index')->with('error', 'Cannot delete course with enrolled students.');
+            return redirect()->route('courses.index')->with('error', 'لا يمكن حذف الدورة لأنها تحتوي على طلاب مسجلين.');
         }
 
         $course->delete();
-        return redirect()->route('courses.index')->with('success', "Course {$course->name} deleted successfully!");
+        return redirect()->route('courses.index')->with('success', "الدورة {$course->name} تم حذفها بنجاح!");
     }
 }

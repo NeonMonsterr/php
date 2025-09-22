@@ -112,10 +112,22 @@
                     </div>
 
                     <div class="mb-4">
+                        <label for="stage" class="block text-gray-700 mb-2">المرحلة</label>
+                        <select name="stage" id="stage" required>
+                            <option value="preparatory" {{ old('stage', $course->stage) === 'preparatory' ? 'selected' : '' }}>إعدادي</option>
+                            <option value="secondary" {{ old('stage', $course->stage) === 'secondary' ? 'selected' : '' }}>ثانوي</option>
+                        </select>
+                        @error('stage')
+                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-4">
                         <label for="level" class="block text-gray-700 mb-2">المستوى</label>
                         <select name="level" id="level" required>
-                            <option value="preparatory" {{ old('level', $course->level) === 'preparatory' ? 'selected' : '' }}>إعدادي</option>
-                            <option value="secondary" {{ old('level', $course->level) === 'secondary' ? 'selected' : '' }}>ثانوي</option>
+                            <option value="1" {{ old('level', $course->level) === '1' ? 'selected' : '' }}>الأول</option>
+                            <option value="2" {{ old('level', $course->level) === '2' ? 'selected' : '' }}>الثاني</option>
+                            <option value="3" {{ old('level', $course->level) === '3' ? 'selected' : '' }}>الثالث</option>
                         </select>
                         @error('level')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
@@ -132,7 +144,7 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded">تحديث الدورة</button>
+                    <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">تحديث الدورة</button>
                 </form>
 
                 <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600 mt-4 inline-block">العودة إلى الدورات</a>

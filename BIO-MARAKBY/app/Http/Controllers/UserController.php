@@ -13,25 +13,31 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\Rule;
+use App\Services\UserServices;
 
 class UserController extends Controller
 {
     use AuthorizesRequests;
+    protected $userService;
 
-    public function __construct()
+    public function __construct(UserServices $userService)
     {
         $this->middleware('auth')->except(['showLoginForm', 'login']);
+        $this->userService = $userService;
     }
 
     public function dashboard()
     {
         $user = Auth::user();
         $subscription = $user->subscription()->with('course')->first();
-        // Update subscription status if it exists
+
         if ($subscription) {
             $subscription->updateStatusBasedOnDates();
         }
         $enrolledCourse = $user->enrolledCourse;
+
+        // Get top users from the service
+        $topUsers = $this->userService->HonorDashboard();
 
         if ($user->role === 'teacher') {
             $students = User::students()->with('enrolledCourse')->get();
@@ -41,11 +47,20 @@ class UserController extends Controller
                 'lectures' => Lecture::whereIn('course_id', Course::where('user_id', $user->id)->pluck('id'))->count(),
                 'exams' => Exam::count(),
             ];
-            return view('dashboard.teacher', compact('user', 'students', 'subscription', 'statistics'));
+
+            return view('dashboard.student', [
+                'user' => $user,
+                'subscription' => $subscription,
+                'enrolledCourse' => $enrolledCourse,
+                'stage' => $enrolledCourse?->stage,
+                'level' => $enrolledCourse?->level,
+                'topUsers' => $topUsers, // Pass top users
+            ]);
         }
 
-        return view('dashboard.student', compact('user', 'subscription', 'enrolledCourse'));
+        return view('dashboard.student', compact('user', 'subscription', 'enrolledCourse', 'topUsers'));
     }
+
 
     public function teacherDashboard(Request $request)
     {
@@ -62,8 +77,12 @@ class UserController extends Controller
             'exams' => Exam::count(),
         ];
 
-        return view('dashboard.teacher', compact('user', 'statistics'));
+        // Get top users
+        $topUsers = $this->userService->HonorDashboard();
+
+        return view('dashboard.teacher', compact('user', 'statistics', 'topUsers'));
     }
+
 
     public function index()
     {
@@ -96,6 +115,8 @@ class UserController extends Controller
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
             'course_id' => ['nullable', Rule::exists('courses', 'id')->where('is_published', true)],
+            'phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
+            'parent_phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
         ]);
 
         $user = User::create([
@@ -104,6 +125,8 @@ class UserController extends Controller
             'password' => Hash::make($validated['password']),
             'role' => 'student',
             'course_id' => $validated['course_id'],
+            'phone_number' => $validated['phone_number'],
+            'parent_phone_number' => $validated['parent_phone_number'],
         ]);
 
         if ($user->course_id) {
@@ -142,6 +165,7 @@ class UserController extends Controller
 
     public function update(Request $request, User $user)
     {
+        $course=Course::find($user->course_id);
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
@@ -153,6 +177,8 @@ class UserController extends Controller
             'subscription_course_id' => 'nullable|exists:courses,id',
             'subscription_start_date' => 'nullable|date',
             'subscription_end_date' => 'nullable|date|after_or_equal:subscription_start_date',
+            'phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
+            'parent_phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
         ]);
 
         // Update user details
@@ -162,6 +188,10 @@ class UserController extends Controller
             'password' => $validated['password'] ? Hash::make($validated['password']) : $user->password,
             'role' => $validated['role'],
             'course_id' => $validated['course_id'],
+            'phone_number' => $validated['phone_number'],
+            'parent_phone_number' => $validated['parent_phone_number'],
+            'level' => $course ? $course->level : $user->level,
+            'stage' => $course ? $course->stage : $user->stage,
         ]);
 
         // Update or create subscription for students
@@ -299,8 +329,10 @@ class UserController extends Controller
             'password' => 'required',
         ]);
 
-        if (Auth::attempt($credentials)) {
+        // Always remember the user (auto "remember me")
+        if (Auth::attempt($credentials, true)) {
             $user = Auth::user();
+
             if ($user->role === 'student') {
                 $subscription = $user->subscription()->first();
                 if ($subscription) {
@@ -310,7 +342,7 @@ class UserController extends Controller
                         $request->session()->invalidate();
                         $request->session()->regenerateToken();
                         return back()->withErrors([
-                        'email' => 'الاشتراك منتهي أو ملغى أو غير موجود. يرجى تجديد الاشتراك لتسجيل الدخول.',
+                            'email' => 'الاشتراك منتهي أو ملغى أو غير موجود. يرجى تجديد الاشتراك لتسجيل الدخول.',
                         ])->onlyInput('email');
                     }
                 } else {
@@ -322,7 +354,9 @@ class UserController extends Controller
                     ])->onlyInput('email');
                 }
             }
+
             $request->session()->regenerate();
+
             return $user->role === 'teacher'
                 ? redirect()->route('dashboard.teacher')
                 : redirect()->route('dashboard');
@@ -350,7 +384,7 @@ class UserController extends Controller
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
                 $q->where('name', 'like', '%' . $search . '%')
-                  ->orWhere('email', 'like', '%' . $search . '%');
+                    ->orWhere('email', 'like', '%' . $search . '%');
             });
         }
 

@@ -52,9 +52,9 @@
 
     <div class="flex min-h-screen">
         @if (auth()->user()->role === 'teacher')
-        @include('partials.sidebar')
+            @include('partials.sidebar')
         @elseif (auth()->user()->role === 'student')
-        @include('partials.student_sidebar')
+            @include('partials.student_sidebar')
         @endif
 
         <div class="flex-1 p-4 sm:p-6">
@@ -62,47 +62,53 @@
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">{{ $course->name }}</h1>
 
                 <p class="text-gray-700 mb-2"><strong>الوصف:</strong> {{ $course->description }}</p>
+                <p class="text-gray-700 mb-2"><strong>المرحلة:</strong>
+                    {{ $course->stage === 'preparatory' ? 'إعدادي' : 'ثانوي' }}</p>
                 <p class="text-gray-700 mb-2"><strong>المستوى:</strong>
-                    {{ $course->level === 'preparatory' ? 'إعدادي' : ($course->level === 'secondary' ? 'ثانوي' : 'غير محدد') }}
-                </p>
+                    {{ $course->level === '1' ? 'الأول' : ($course->level === '2' ? 'الثاني' : 'الثالث') }}</p>
                 <p class="text-gray-700 mb-6"><strong>منشور:</strong> {{ $course->is_published ? 'نعم' : 'لا' }}</p>
 
                 @if (auth()->user() && auth()->user()->role === 'teacher')
-                <p class="text-gray-700 mb-6"><strong>أنشأها:</strong> {{ $course->user->name }}</p>
+                    <p class="text-gray-700 mb-6"><strong>أنشأها:</strong> {{ $course->user->name }}</p>
                 @endif
 
                 <div class="mb-6">
-                    <h2 class="text-xl font-semibold text-gray-800 mb-4">المحاضرات</h2>
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-gray-800">المحاضرات</h2>
+                        @if (auth()->user() && auth()->user()->role === 'teacher')
+                            <a href="{{ route('lectures.create', $course) }}"
+                                class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 font-semibold">
+                                إضافة محاضرة
+                            </a>
+                        @endif
+                    </div>
                     @if ($lectures->isEmpty())
-                    <p class="text-gray-600">لا توجد محاضرات متاحة لهذه الدورة.</p>
+                        <p class="text-gray-600">لا توجد محاضرات متاحة لهذه الدورة.</p>
                     @else
-                    <ul class="space-y-4">
-                        @foreach ($lectures as $lecture)
-                        <li class="bg-gray-50 p-4 rounded-lg shadow-sm">
-                            <div class="flex justify-between items-center">
-                                <div>
-                                    <h3 class="text-lg font-medium text-gray-700">{{ $lecture->title }}</h3>
-                                    <p class="text-gray-500 text-sm">الترتيب: {{ $lecture->position }}</p>
-                                    @if (auth()->user() && auth()->user()->role === 'teacher')
-                                    <p class="text-gray-500 text-sm">الحالة:
-                                        {{ $lecture->is_published ? 'منشور' : 'غير منشور' }}
-                                    </p>
-                                    @endif
-                                </div>
-                                <a href="{{ auth()->check() ? route('lectures.show', $lecture) : route('login') }}"
-                                    class="text-blue-500 hover:text-blue-600 text-sm">
-                                    عرض المحاضرة
-                                </a>
-                            </div>
-                        </li>
-                        @endforeach
-                    </ul>
+                        <ul class="space-y-4">
+                            @foreach ($lectures as $lecture)
+                                <li class="bg-gray-50 p-4 rounded-lg shadow-sm">
+                                    <div class="flex justify-between items-center">
+                                        <div>
+                                            <h3 class="text-lg font-medium text-gray-700">{{ $lecture->title }}</h3>
+                                            <p class="text-gray-500 text-sm">الترتيب: {{ $lecture->position }}</p>
+                                            @if (auth()->user() && auth()->user()->role === 'teacher')
+                                                <p class="text-gray-500 text-sm">الحالة:
+                                                    {{ $lecture->is_published ? 'منشور' : 'غير منشور' }}</p>
+                                            @endif
+                                        </div>
+                                        <a href="{{ route('lectures.show', [$lecture->course, $lecture]) }}"
+                                            class="btn btn-info">
+                                            عرض
+                                        </a>
+                                    </div>
+                                </li>
+                            @endforeach
+                        </ul>
                     @endif
                 </div>
 
-                @if (auth()->user()->role === 'teacher')
                 <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600">العودة إلى الدورات</a>
-                @endif
             </div>
         </div>
     </div>

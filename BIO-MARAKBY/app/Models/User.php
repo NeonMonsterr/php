@@ -58,6 +58,10 @@ class User extends Authenticatable
         'password',
         'role',
         'course_id',
+        'phone_number',
+        'parent_phone_number',
+        'level',
+        'stage'
     ];
 
 
@@ -113,4 +117,17 @@ class User extends Authenticatable
     {
         return $query->where('role', 'student');
     }
+
+// public function ScopedCourses($query)
+// {
+//     return $query->where('role', 'student')
+//                 ->whereNotNull('level')
+//                 ->whereNotNull('stage')
+//                 ->join('courses', function ($join) {
+//                     $join->on('courses.level', '=', 'users.level')
+//                          ->on('courses.stage', '=', 'users.stage')
+//                          ->where('courses.is_published', true);
+//                 })
+//                 ->select('courses.*');
+// }
 }

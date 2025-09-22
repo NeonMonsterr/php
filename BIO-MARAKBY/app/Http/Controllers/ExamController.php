@@ -23,64 +23,67 @@ class ExamController extends Controller
     {
         $this->middleware('auth');
     }
+
     public function allresult(Exam $exam)
     {
         $this->authorize('viewResults', $exam);
 
         $students = $exam->course?->students()->get();
-
-        $questions = $exam->questions()->with('options')->get();
+        $questions = $exam->questions()->with(['options', 'essayAnswer'])->get();
 
         $results = [];
 
         foreach ($students as $student) {
-            $attempt = \App\Models\ExamAttempt::where('exam_id', $exam->id)
+            $attempt = ExamAttempt::where('exam_id', $exam->id)
                 ->where('user_id', $student->id)
                 ->first();
 
+            $detailedAnswers = [];
+
             if (!$attempt) {
-                // الطالب لم يمتحن بعد
                 $results[] = [
                     'student' => $student,
                     'score' => null,
+                    'answers' => [],
                 ];
                 continue;
             }
 
-            $userAnswers = \App\Models\Answer::where('user_id', $student->id)
+            $userAnswers = Answer::where('user_id', $student->id)
                 ->whereIn('question_id', $questions->pluck('id'))
                 ->get()
                 ->keyBy('question_id');
 
-            $totalScore = 0;
-
             foreach ($questions as $question) {
-                $questionPoints = $question->points ?? 1;
-
                 $userAnswer = $userAnswers[$question->id] ?? null;
+                $isCorrect = false;
+                $isPending = false;
 
                 if ($question->type === 'mcq') {
                     $correctOption = $question->options->where('is_correct', true)->first();
-
-                    if ($userAnswer && $correctOption && $userAnswer->option_id == $correctOption->id) {
-                        $totalScore += $questionPoints;
-                    }
+                    $isCorrect = $userAnswer && $correctOption && $userAnswer->option_id == $correctOption->id;
                 } elseif ($question->type === 'essay') {
-                    if ($userAnswer && !empty(trim($userAnswer->answer_text))) {
-                        $totalScore += $questionPoints;
-                    }
+                    $isPending = $userAnswer && $userAnswer->score === null;
+                    $isCorrect = $userAnswer && $userAnswer->score > 0;
                 }
+
+                $detailedAnswers[$question->id] = [
+                    'question' => $question,
+                    'userAnswer' => $userAnswer,
+                    'isCorrect' => $isCorrect,
+                    'isPending' => $isPending,
+                ];
             }
 
             $results[] = [
                 'student' => $student,
-                'score' => $totalScore,
+                'score' => $attempt->score, // Use ExamAttempt->score directly
+                'answers' => $detailedAnswers,
             ];
         }
 
         return view('exams.allresult', compact('exam', 'results'));
     }
-
 
     public function index()
     {
@@ -184,11 +187,9 @@ class ExamController extends Controller
                     ]);
                 }
 
-                // حفظ الصور إذا وجدت
                 if (!empty($questionData['images'])) {
                     foreach ($questionData['images'] as $image) {
                         $path = $image->store('question_images', 'public');
-
                         $question->images()->create([
                             'image_path' => $path
                         ]);
@@ -204,9 +205,7 @@ class ExamController extends Controller
                 'redirect' => route('exams.show', $exam->id)
             ]);
         } catch (\Exception $e) {
-            // حذف الأسئلة التي تم إنشاؤها في حالة حدوث خطأ
             foreach ($createdQuestions as $question) {
-                // حذف الصور أولاً
                 foreach ($question->images as $image) {
                     Storage::disk('public')->delete($image->image_path);
                     $image->delete();
@@ -259,7 +258,6 @@ class ExamController extends Controller
     {
         $this->authorize('delete', $exam);
 
-        // حذف الصور أولاً
         foreach ($exam->questions as $question) {
             foreach ($question->images as $image) {
                 Storage::disk('public')->delete($image->image_path);
@@ -279,17 +277,14 @@ class ExamController extends Controller
 
         $user = Auth::user();
 
-        // التحقق من عدم وجود محاولة سابقة
         if ($exam->attempts()->where('user_id', $user->id)->exists()) {
             return redirect()->back()->with('error', 'لقد قمت بتقديم هذا الامتحان من قبل');
         }
 
-        // التحقق من وقت الامتحان
         if (!now()->between($exam->start_time, $exam->end_time)) {
             return redirect()->back()->with('error', 'الامتحان غير متاح حالياً');
         }
 
-        // إنشاء محاولة جديدة
         $attempt = $exam->attempts()->create([
             'user_id' => $user->id,
             'started_at' => now(),
@@ -297,15 +292,15 @@ class ExamController extends Controller
             'score' => 0,
         ]);
 
-        // معالجة الإجابات
         $totalScore = 0;
 
         foreach ($request->input('answers', []) as $questionId => $answer) {
             $question = Question::findOrFail($questionId);
 
             $answerData = [
+                'user_id' => $user->id,
                 'question_id' => $questionId,
-                'points_earned' => 0,
+                'score' => 0, // Use 'score' to match Answer model
             ];
 
             if ($question->type == 'mcq') {
@@ -313,16 +308,16 @@ class ExamController extends Controller
                 $isCorrect = $option ? $option->is_correct : false;
 
                 $answerData['option_id'] = $answer;
-                $answerData['points_earned'] = $isCorrect ? $question->points : 0;
+                $answerData['score'] = $isCorrect ? $question->points : 0;
                 $totalScore += $isCorrect ? $question->points : 0;
             } else {
-                $answerData['answer_text'] = $answer;
+                $answerData['answer_text'] = $answer ?? '';
+                $answerData['score'] = null; // Essay answers pending grading
             }
 
             $attempt->answers()->create($answerData);
         }
 
-        // تحديث المحاولة
         $attempt->update([
             'finished_at' => now(),
             'score' => $totalScore,

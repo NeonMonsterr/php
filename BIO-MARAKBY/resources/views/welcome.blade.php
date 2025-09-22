@@ -19,28 +19,47 @@
     <!-- Header -->
     <header class="header">
         <div class="container">
-            <a href="{{route('welcome')}}" class="logo" data-aos="fade-down"><img style="width: 6rem;" src="images/logo.png" alt=""></a>
+            <a href="{{ route('welcome') }}" class="logo" data-aos="fade-down"><img style="width: 6rem;"
+                    src="images/logo.png" alt=""></a>
             <nav class="navbar" data-aos="fade-down">
                 <ul>
-                    <li><a href="{{route('welcome')}}" class="active">الرئيسية</a></li>
+                    <li><a href="{{ route('welcome') }}" class="active">الرئيسية</a></li>
                     <li><a href="#about">من نحن</a></li>
                     <li><a href="#lessons">الدروس</a></li>
                     <li><a href="#testimonials">اراء الطلاب</a></li>
                     <li><a href="#contact">تواصل معنا</a></li>
                     <li class="mobile-login">
-                        <a href="{{route('login')}}" class="login-button">
-                            <img src="{{ asset('images/dna.gif') }}" alt="DNA Icon" loading="lazy" style="width: 40px; height: 40px; margin-left:6px;">
+                        <a href="{{ route('login') }}" class="login-button">
+                            <img src="{{ asset('images/dna.gif') }}" alt="DNA Icon" loading="lazy"
+                                style="width: 40px; height: 40px; margin-left:6px;">
                             <span class="text">تسجيل الدخول</span>
+                        </a>
+                    </li>
+                    <li class="mobile-login">
+                        <a href="{{ route('register.form') }}" class="login-button">
+                            <img src="{{ asset('images/dna.gif') }}" alt="DNA Icon" loading="lazy"
+                                style="width: 40px; height: 40px; margin-left:6px;">
+                            <span class="text">إنشاء حساب</span>
                         </a>
                     </li>
                 </ul>
             </nav>
-            <a style="font-size: larger;" href="{{ route('login') }}" class="login-button desktop-only">
-                <span class="text">
-                    <img src="{{ asset('images/dna.gif') }}" alt="DNA Icon" loading="lazy" style="width: 40px; height: 40px; margin-left: 6px;">
-                    تسجيل الدخول
-                </span>
-            </a>
+            <div style="display: flex">
+                <a style="font-size: medium;" href="{{ route('login') }}" class="login-button desktop-only">
+                    <span class="text">
+                        <img src="{{ asset('images/dna.gif') }}" alt="DNA Icon" loading="lazy"
+                            style="width: 40px; height: 40px; margin-left: 6px;">
+                        تسجيل الدخول
+                    </span>
+                </a>
+                <a style="font-size: medium; margin-right: 1rem" href="{{ route('register.form') }}" class="login-button desktop-only">
+                    <span class="text">
+                        <img src="{{ asset('images/dna.gif') }}" alt="DNA Icon" loading="lazy"
+                            style="width: 40px; height: 40px; margin-left: 6px;">
+                        إنشاء حساب
+                    </span>
+                </a>
+            </div>
             <button class="menu-toggle" aria-label="قائمة الهاتف">
                 <i class="fas fa-bars"></i>
             </button>
@@ -136,7 +155,8 @@
                         <img src="images/3.png" loading="lazy" alt="درس 1" />
                         <div class="lesson-overlay">
                             <h3 style="color: white;">التكاثر في الإنسان</h3>
-                            <a style="color:cadetblue;" href="{{route('login')}}" class="btn btn-small">مشاهدة الدرس</a>
+                            <a style="color:cadetblue;" href="{{ route('login') }}" class="btn btn-small">مشاهدة
+                                الدرس</a>
                         </div>
                     </div>
                     <div class="lesson-info">
@@ -154,7 +174,8 @@
                         <img src="images/1.png" loading="lazy" alt="درس 2" />
                         <div class="lesson-overlay">
                             <h3 style="color: white;">التركيب الذري</h3>
-                            <a style="color:cadetblue;" href="{{route('login')}}" class="btn btn-small">مشاهدة الدرس</a>
+                            <a style="color:cadetblue;" href="{{ route('login') }}" class="btn btn-small">مشاهدة
+                                الدرس</a>
                         </div>
                     </div>
                     <div class="lesson-info">
@@ -172,7 +193,8 @@
                         <img src="images/2.png" loading="lazy" alt="درس 3" />
                         <div class="lesson-overlay">
                             <h3 style="color: white;">الجهاز العصبي</h3>
-                            <a style="color:cadetblue;" href="{{route('login')}}" class="btn btn-small">مشاهدة الدرس</a>
+                            <a style="color:cadetblue;" href="{{ route('login') }}" class="btn btn-small">مشاهدة
+                                الدرس</a>
                         </div>
                     </div>
                     <div class="lesson-info">
@@ -185,7 +207,7 @@
                 </div>
             </div>
             <div class="text-center" data-aos="fade-up" style="margin-top: 1rem">
-                <a href="{{route('login')}}" class="btn btn-outline">عرض جميع الدروس</a>
+                <a href="{{ route('login') }}" class="btn btn-outline">عرض جميع الدروس</a>
             </div>
         </div>
     </section>
@@ -384,7 +406,7 @@
                     احب اقولك ان كل الاوائل كدة بيكونوا خايفين بس لما بياخدوا الخطوة
                     بيكتشفوا بعدين عقولهم
                 </p>
-                <a href="{{route('login')}}" class="btn btn-outline">يلا بينا سوا</a>
+                <a href="{{ route('login') }}" class="btn btn-outline">يلا بينا سوا</a>
             </div>
         </div>
     </section>
@@ -412,11 +434,11 @@
                 <div class="footer-links" data-aos="fade-up" data-aos-delay="100">
                     <h3>روابط سريعة</h3>
                     <ul>
-                        <li><a href="{{route('welcome')}}">الرئيسية</a></li>
+                        <li><a href="{{ route('welcome') }}">الرئيسية</a></li>
                         <li><a href="#about">عني</a></li>
                         <li><a href="#lessons">الدروس</a></li>
                         <li><a href="#blog">المدونة</a></li>
-                        <li><a href="{{route('contact')}}">تواصل معنا</a></li>
+                        <li><a href="{{ route('contact') }}">تواصل معنا</a></li>
                     </ul>
                 </div>
                 <div class="footer-contact" data-aos="fade-up" data-aos-delay="200">
@@ -484,4 +506,5 @@
         });
     </script>
 </body>
+
 </html>

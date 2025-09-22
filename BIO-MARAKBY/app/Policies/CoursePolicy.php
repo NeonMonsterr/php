@@ -15,7 +15,8 @@ class CoursePolicy
      */
     public function viewAny(User $user): bool
     {
-        return true; // Both teachers and students can view courses (students see only their course)
+        // Teachers can see all, students only see their enrolled course
+        return true;
     }
 
     /**
@@ -23,7 +24,16 @@ class CoursePolicy
      */
     public function view(User $user, Course $course): bool
     {
-        return $user->role === 'teacher' || $user->course_id === $course->id;
+        if ($user->role === 'teacher') {
+            return true; // Teachers can view all courses
+        }
+
+        if ($user->role === 'student') {
+            // Students can view only the course they are enrolled in
+            return $user->enrolledCourse && $user->enrolledCourse->id === $course->id;
+        }
+
+        return false;
     }
 
     /**
@@ -35,15 +45,18 @@ class CoursePolicy
     }
 
     /**
+     * Determine if the user can update a course.
+     */
+    public function update(User $user, Course $course): bool
+    {
+        return $user->role === 'teacher' && $course->user_id === $user->id;
+    }
+
+    /**
      * Determine if the user can delete a course.
      */
     public function delete(User $user, Course $course): bool
     {
-        return $user->role === 'teacher';
-    }
-
-    public function update(User $user, Course $course): bool
-    {
-        return $user->role === 'teacher' ;
+        return $user->role === 'teacher' && $course->user_id === $user->id;
     }
 }

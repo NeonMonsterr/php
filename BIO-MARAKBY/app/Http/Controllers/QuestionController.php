@@ -4,41 +4,36 @@ namespace App\Http\Controllers;
 
 use App\Models\Exam;
 use App\Models\Question;
+use App\Models\Answer;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\DB;
 
 class QuestionController extends Controller
 {
-    /**
-     * Display a listing of the resource.
-     */
-    // app/Http/Controllers/ExamController.php
     public function start(Exam $exam)
     {
         $user = auth()->user();
 
-        // التحقق من تسجيل الطالب في الكورس
         if ($user->course_id != $exam->course_id) {
             abort(403, 'غير مسجل في هذه الدورة');
         }
 
-        // التحقق من نشر الامتحان
         if (!$exam->is_published) {
             abort(403, 'هذا الامتحان غير متاح حالياً');
         }
 
-        // التحقق من أنه لم يقدم الامتحان من قبل
         $alreadyAttempted = $user->examAttempts()->where('exam_id', $exam->id)->exists();
         if ($alreadyAttempted) {
             return redirect()->route('exams.results', $exam->id)
                 ->with('info', 'لقد قمت بالفعل بتقديم هذا الامتحان');
         }
 
-        // تحميل الأسئلة والخيارات
         $exam->load('questions.options');
 
-        // جلب الإجابات المحفوظة (سواء خيار أو مقال)
         $existingAnswers = $user->answers()
             ->whereIn('question_id', $exam->questions->pluck('id'))
             ->get()
@@ -54,37 +49,37 @@ class QuestionController extends Controller
         $questions = $exam->questions()->with('options')->get();
         $userAnswers = $user->answers()->whereIn('question_id', $questions->pluck('id'))->get()->keyBy('question_id');
 
-        $correctAnswers = 0;         // عدد الأسئلة الصح (لو عايز تستخدمه)
-        $totalScore = 0;             // مجموع الدرجات التي حصل عليها الطالب
-        $totalPossibleScore = 0;     // مجموع الدرجات الكاملة للامتحان
+        $correctAnswers = 0;
+        $totalScore = 0;
+        $totalPossibleScore = 0;
 
         $detailedResults = [];
 
         foreach ($questions as $question) {
             $userAnswer = $userAnswers[$question->id] ?? null;
             $isCorrect = false;
-            $questionPoints = $question->points ?? 1; // الافتراضي نقطة واحدة
+            $isPending = false;
+            $questionPoints = $question->points ?? 1;
 
-            // إجمالي الدرجات الكلية
             $totalPossibleScore += $questionPoints;
 
             if ($question->type === 'mcq') {
                 $correctOption = $question->options->where('is_correct', true)->first();
-                if (
-                    $userAnswer &&
-                    $correctOption &&
-                    $userAnswer->option_id == $correctOption->id
-                ) {
+                if ($userAnswer && $correctOption && $userAnswer->option_id == $correctOption->id) {
                     $isCorrect = true;
                     $correctAnswers++;
-                    $totalScore += $questionPoints;
+                    $totalScore += $userAnswer->score ?? $questionPoints;
                 }
             } elseif ($question->type === 'essay') {
-                // نعتبر أي إجابة مقال غير فاضية = صحيحة مؤقتًا (تقدر تغير ده بعدين بتصحيح يدوي)
-                if ($userAnswer && !empty(trim($userAnswer->answer_text))) {
-                    $isCorrect = true;
-                    $correctAnswers++;
-                    $totalScore += $questionPoints;
+                if ($userAnswer) {
+                    $isPending = $userAnswer->score === null;
+                    $isCorrect = $userAnswer->score > 0;
+                    if ($userAnswer->score !== null) {
+                        $totalScore += $userAnswer->score;
+                    }
+                    if ($isCorrect) {
+                        $correctAnswers++;
+                    }
                 }
             }
 
@@ -93,6 +88,7 @@ class QuestionController extends Controller
                 'userAnswer' => $userAnswer,
                 'correctOption' => $correctOption ?? null,
                 'isCorrect' => $isCorrect,
+                'isPending' => $isPending,
             ];
         }
 
@@ -105,9 +101,6 @@ class QuestionController extends Controller
         ));
     }
 
-
-
-
     public function saveProgress(Request $request, Exam $exam)
     {
         $user = auth()->user();
@@ -118,14 +111,23 @@ class QuestionController extends Controller
             if (!$question) continue;
 
             if ($question->type === 'mcq') {
+                $isCorrect = ($question->options()->where('is_correct', true)->first()->id ?? null) == $answer;
                 $user->answers()->updateOrCreate(
                     ['question_id' => $questionId],
-                    ['option_id' => $answer, 'answer_text' => null]
+                    [
+                        'option_id' => $answer,
+                        'answer_text' => null,
+                        'score' => $isCorrect ? $question->points : 0,
+                    ]
                 );
             } elseif ($question->type === 'essay') {
                 $user->answers()->updateOrCreate(
                     ['question_id' => $questionId],
-                    ['answer_text' => $answer, 'option_id' => null]
+                    [
+                        'answer_text' => $answer ?? '',
+                        'option_id' => null,
+                        'score' => null,
+                    ]
                 );
             }
         }
@@ -137,12 +139,10 @@ class QuestionController extends Controller
         return back()->with('success', 'تم حفظ الإجابات بنجاح');
     }
 
-
     public function submit(Request $request, Exam $exam)
     {
         $user = auth()->user();
 
-        // التحقق إذا المستخدم قدم الامتحان من قبل
         $alreadyAttempted = $user->examAttempts()->where('exam_id', $exam->id)->exists();
         if ($alreadyAttempted) {
             return redirect()->route('exams.results', $exam->id)
@@ -156,62 +156,142 @@ class QuestionController extends Controller
             if (!$question) continue;
 
             if ($question->type === 'mcq') {
-                // تحقق من صحة الإجابة للاختيارات
-                $isCorrect = ($question->correct_option_id == $answer);
-
+                $isCorrect = ($question->options()->where('is_correct', true)->first()->id ?? null) == $answer;
                 $user->answers()->updateOrCreate(
                     ['question_id' => $questionId],
                     [
                         'option_id' => $answer,
                         'answer_text' => null,
-                        'is_correct' => $isCorrect,
+                        'score' => $isCorrect ? $question->points : 0,
                     ]
                 );
             } elseif ($question->type === 'essay') {
-                // تحقق من صحة الإجابة المقالية (نصية) مع تجاهل حالة الأحرف والمسافات
-                $userAnswer = trim(mb_strtolower($answer));
-                $correctAnswer = trim(mb_strtolower($question->correct_answer ?? ''));
-
-                $isCorrect = ($userAnswer === $correctAnswer);
-
                 $user->answers()->updateOrCreate(
                     ['question_id' => $questionId],
                     [
-                        'answer_text' => $answer,
+                        'answer_text' => $answer ?? '',
                         'option_id' => null,
-                        'is_correct' => $isCorrect,
+                        'score' => null,
                     ]
                 );
             }
         }
 
-        // تسجيل محاولة الامتحان
         $user->examAttempts()->create([
             'exam_id' => $exam->id,
             'completed_at' => now(),
             'remaining_time' => $request->input('remaining_time'),
+            'score' => 0, // Initialize score
         ]);
 
         return redirect()->route('exams.results', $exam->id)
             ->with('success', 'تم تقديم الامتحان بنجاح');
     }
 
-
-
-    /**
-     * Show the form for creating a new resource.
-     */
-    public function create()
+    public function gradeEssayAnswers(Exam $exam, User $student)
     {
-        //
+        $this->authorize('update', $exam);
+
+        if ($student->role !== 'student' || $student->course_id !== $exam->course_id) {
+            abort(403, 'المستخدم ليس طالبًا في هذه الدورة');
+        }
+
+        $attempt = $student->examAttempts()->where('exam_id', $exam->id)->first();
+        if (!$attempt) {
+            return redirect()->route('exams.allresult', $exam->id)
+                ->with('error', 'الطالب لم يقدم الامتحان بعد');
+        }
+
+        $questions = $exam->questions()->where('type', 'essay')->with(['essayAnswer', 'answers' => function ($query) use ($student) {
+            $query->where('user_id', $student->id);
+        }])->get();
+
+        return view('exams.grade_essay', compact('exam', 'student', 'questions', 'attempt'));
     }
-    public function questions()
+
+    public function storeEssayGrades(Request $request, Exam $exam, User $student)
     {
-        return $this->hasMany(Question::class);
+        $this->authorize('update', $exam);
+
+        if ($student->role !== 'student' || $student->course_id !== $exam->course_id) {
+            abort(403, 'المستخدم ليس طالبًا في هذه الدورة');
+        }
+
+        $attempt = $student->examAttempts()->where('exam_id', $exam->id)->first();
+        if (!$attempt) {
+            return redirect()->route('exams.allresult', $exam->id)
+                ->with('error', 'الطالب لم يقدم الامتحان بعد');
+        }
+
+        $validated = $request->validate([
+            'grades' => 'required|array',
+            'grades.*.question_id' => 'required|exists:questions,id',
+            'grades.*.points_earned' => 'required|integer|min:0',
+        ]);
+
+        Log::info('storeEssayGrades: Validated input', ['grades' => $validated['grades'], 'student_id' => $student->id, 'exam_id' => $exam->id]);
+
+        // Use transaction to ensure consistency
+        DB::transaction(function () use ($exam, $student, $validated, $attempt) {
+            // Fetch all answers for the student and exam
+            $answers = Answer::where('user_id', $student->id)
+                ->whereIn('question_id', $exam->questions->pluck('id'))
+                ->get()
+                ->keyBy('question_id');
+
+            $totalScore = 0;
+
+            // Calculate MCQ scores
+            foreach ($exam->questions as $question) {
+                if ($question->type === 'mcq') {
+                    $answer = $answers[$question->id] ?? null;
+                    if ($answer && $answer->score !== null) {
+                        $totalScore += $answer->score;
+                        Log::info('MCQ Score', ['question_id' => $question->id, 'score' => $answer->score]);
+                    }
+                }
+            }
+
+            // Process essay grades
+            foreach ($validated['grades'] as $grade) {
+                $question = $exam->questions->where('id', $grade['question_id'])->first();
+                if (!$question || $question->type !== 'essay' || $question->exam_id !== $exam->id) {
+                    Log::warning('Invalid question or type', ['question_id' => $grade['question_id'], 'type' => $question->type ?? 'N/A']);
+                    continue;
+                }
+
+                if ($grade['points_earned'] > $question->points) {
+                    throw new \Exception("الدرجة الممنوحة يجب ألا تتجاوز {$question->points} لهذا السؤال: {$question->id}");
+                }
+
+                $answer = $answers[$grade['question_id']] ?? null;
+                if (!$answer) {
+                    $answer = Answer::create([
+                        'user_id' => $student->id,
+                        'question_id' => $grade['question_id'],
+                        'answer_text' => '',
+                        'option_id' => null,
+                        'score' => $grade['points_earned'],
+                    ]);
+                    Log::info('Created new Answer record', ['answer_id' => $answer->id, 'question_id' => $grade['question_id'], 'score' => $grade['points_earned']]);
+                } else {
+                    $answer->update([
+                        'score' => $grade['points_earned'],
+                    ]);
+                    Log::info('Updated Answer record', ['answer_id' => $answer->id, 'question_id' => $grade['question_id'], 'score' => $grade['points_earned']]);
+                }
+
+                $totalScore += $grade['points_earned'];
+            }
+
+            // Update ExamAttempt
+            $attempt->update(['score' => $totalScore]);
+            Log::info('Updated ExamAttempt', ['exam_id' => $exam->id, 'student_id' => $student->id, 'score' => $totalScore]);
+        });
+
+        return redirect()->route('exams.allresult', $exam->id)
+            ->with('success', 'تم حفظ درجات الأسئلة المقالية بنجاح وإعادة حساب الدرجة الإجمالية!');
     }
-
-
-    // ExamQuestionController.php
 
     public function storeBatch(Request $request, Exam $exam)
     {
@@ -263,7 +343,6 @@ class QuestionController extends Controller
                     ]);
                 }
 
-                // حفظ الصور المرفوعة لهذا السؤال
                 if ($request->hasFile("questions.$index.images")) {
                     foreach ($request->file("questions.$index.images") as $image) {
                         $path = $image->store('question_images', 'public');
@@ -285,22 +364,12 @@ class QuestionController extends Controller
             ], 500);
         }
     }
-    /**
-     * Store a newly created resource in storage.
-     */
 
-
-    /**
-     * Display the specified resource.
-     */
-    public function show(string $id)
+    public function questions()
     {
-        //
+        return $this->hasMany(Question::class);
     }
 
-    /**
-     * Show the form for editing the specified resource.
-     */
     public function edit(Exam $exam)
     {
         $exam->load(['questions' => function ($query) {
@@ -318,83 +387,90 @@ class QuestionController extends Controller
     }
 
     public function update(Request $request, Exam $exam)
-    {
-        $validated = $request->validate([
-            'questions' => 'required|array|min:1',
-            'questions.*.id' => 'required|exists:questions,id',
-            'questions.*.question_text' => 'required|string|max:1000',
-            'questions.*.type' => 'required|in:mcq,essay',
-            'questions.*.points' => 'required|integer|min:1',
-            'questions.*.options' => 'array',
-            'questions.*.options.*.id' => 'nullable|exists:options,id',
-            'questions.*.options.*.text' => 'nullable|string|max:255',
-            'questions.*.correct_option' => 'nullable|integer|between:0,3',
-            'questions.*.answer_text' => 'nullable|string|max:2000',
-            'questions.*.existing_images' => 'nullable|array',
-            'questions.*.existing_images.*' => 'exists:question_images,id',
-            'questions.*.new_images' => 'nullable|array',
-            'questions.*.new_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
-        ]);
+{
+    $validated = $request->validate([
+        'questions' => 'required|array|min:1',
+        'questions.*.id' => 'nullable|exists:questions,id',
+        'questions.*.question_text' => 'required|string|max:1000',
+        'questions.*.type' => 'required|in:mcq,essay',
+        'questions.*.points' => 'required|integer|min:1',
+        'questions.*.options' => 'nullable|array',
+        'questions.*.options.*.text' => 'nullable|string|max:255',
+        'questions.*.correct_option' => 'nullable|integer',
+        'questions.*.answer_text' => 'nullable|string|max:2000',
+        'questions.*.new_images.*' => 'image|mimes:jpeg,png,jpg,gif|max:2048',
+        'questions.*.existing_images' => 'nullable|array',
+    ]);
 
+    DB::transaction(function () use ($validated, $exam, $request) {
         foreach ($validated['questions'] as $index => $questionData) {
-            $question = Question::findOrFail($questionData['id']);
+            // Find or create question
+            $question = isset($questionData['id'])
+                ? $exam->questions()->find($questionData['id'])
+                : $exam->questions()->create([
+                    'question_text' => $questionData['question_text'],
+                    'type' => $questionData['type'],
+                    'points' => $questionData['points'],
+                ]);
 
-            // تحديث بيانات السؤال الأساسية
+            if (!$question) continue;
+
+            // Update question fields
             $question->update([
                 'question_text' => $questionData['question_text'],
                 'type' => $questionData['type'],
                 'points' => $questionData['points'],
             ]);
 
-            // معالجة الصور الحالية والمحذوفة
-            $existingImages = $questionData['existing_images'] ?? [];
-            $imagesToDelete = $question->images()->whereNotIn('id', $existingImages)->get();
-
-            foreach ($imagesToDelete as $image) {
-                Storage::delete('public/' . $image->image_path);
-                $image->delete();
+            // Handle MCQ options
+            if ($questionData['type'] === 'mcq') {
+                $question->options()->delete(); // reset old options
+                if (!empty($questionData['options'])) {
+                    foreach ($questionData['options'] as $optIndex => $opt) {
+                        $question->options()->create([
+                            'option_text' => $opt['text'] ?? '',
+                            'is_correct' => isset($questionData['correct_option']) &&
+                                $questionData['correct_option'] == $optIndex,
+                        ]);
+                    }
+                }
             }
 
-            // معالجة الصور الجديدة
+            // Handle Essay answer
+            if ($questionData['type'] === 'essay') {
+                $question->essayAnswer()->updateOrCreate(
+                    ['question_id' => $question->id],
+                    ['answer_text' => $questionData['answer_text'] ?? '']
+                );
+            }
+
+            // Handle Images
+            // 1. Delete removed images
+            $existing = $questionData['existing_images'] ?? [];
+            foreach ($question->images as $img) {
+                if (!in_array($img->id, $existing)) {
+                    Storage::disk('public')->delete($img->image_path);
+                    $img->delete();
+                }
+            }
+
+            // 2. Add new images
             if ($request->hasFile("questions.$index.new_images")) {
-                foreach ($request->file("questions.$index.new_images") as $image) {
-                    $path = $image->store('question_images', 'public');
+                foreach ($request->file("questions.$index.new_images") as $file) {
+                    $path = $file->store('question_images', 'public');
                     $question->images()->create(['image_path' => $path]);
                 }
             }
-
-            // معالجة الخيارات (لأسئلة الاختيار من متعدد)
-            if ($questionData['type'] === 'mcq' && isset($questionData['options'])) {
-                foreach ($questionData['options'] as $optIndex => $optionData) {
-                    $option = $question->options()->updateOrCreate(
-                        ['id' => $optionData['id'] ?? null],
-                        ['option_text' => $optionData['text'] ?? '']
-                    );
-
-                    $option->update(['is_correct' => ($optIndex == $questionData['correct_option'])]);
-                }
-            }
-
-            // معالجة الإجابة المقالية
-            if ($questionData['type'] === 'essay' && isset($questionData['answer_text'])) {
-                $question->essayAnswer()->updateOrCreate(
-                    ['question_id' => $question->id],
-                    ['answer_text' => $questionData['answer_text']]
-                );
-            }
         }
+    });
 
-        return response()->json([
-            'success' => true,
-            'message' => 'تم تحديث الأسئلة بنجاح',
-            'redirect' => route('exams.show', $exam->id)
-        ]);
-    }
+    return response()->json([
+        'success' => true,
+        'redirect' => route('exams.show', $exam->id),
+        'message' => 'تم تحديث الأسئلة بنجاح'
+    ]);
+}
 
-
-    /**
-     * Remove the specified resource from storage.
-     */
     public function destroy(string $id)
     {
         //

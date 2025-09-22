@@ -6,8 +6,10 @@ use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\LectureController;
 use App\Http\Controllers\QuestionController;
+use App\Http\Controllers\SectionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
+use App\Http\Controllers\RegisterController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -26,6 +28,8 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/exams/{exam}/save-progress', [QuestionController::class, 'saveProgress'])->name('exams.save_progress');
     Route::post('/exams/{exam}/submit', [QuestionController::class, 'submit'])->name('exams.submit');
     Route::get('/exams/{exam}/result', [QuestionController::class, 'results'])->name('exams.results');
+    Route::get('/exams/{exam}/student/{student}/grade-essay', [QuestionController::class, 'gradeEssayAnswers'])->name('exams.grade_essay');
+    Route::post('/exams/{exam}/student/{student}/grade-essay', [QuestionController::class, 'storeEssayGrades'])->name('exams.grade_essay.save');
 });
 
 
@@ -59,8 +63,9 @@ Artisan::command('inspire', function () {
 Route::get('/', [WelcomeController::class, 'index'])->name('welcome');
 Route::view('/contact', 'contact')->name('contact');
 
-
-
+//register routes
+Route::get('/register', [RegisterController::class, 'showRegisterForm'])->name('register.form');
+Route::post('/register', [RegisterController::class, 'register'])->name('register');
 
 // مسارات الأسئلة
 
@@ -101,14 +106,22 @@ Route::middleware('auth')->group(function () {
     Route::delete('/courses/{course}', [CourseController::class, 'destroy'])->name('courses.destroy');
 
     // Lecture routes
-    Route::get('/lectures', [LectureController::class, 'index'])->name('lectures.index');
-    Route::get('/lectures/create', [LectureController::class, 'create'])->name('lectures.create');
-    Route::post('/lectures', [LectureController::class, 'store'])->name('lectures.store');
-    Route::get('/lectures/{lecture}', [LectureController::class, 'show'])->name('lectures.show');
+    Route::get('/courses/{course}/lectures/create', [LectureController::class, 'create'])->name('lectures.create');
+    Route::post('/courses/{course}/lectures', [LectureController::class, 'store'])->name('lectures.store');
+    Route::get('/courses/{course}/lectures/{lecture}', [LectureController::class, 'show'])->name('lectures.show');
     Route::get('/courses/{course}/lectures/{lecture}/edit', [LectureController::class, 'edit'])->name('lectures.edit');
-    Route::put('/lectures/{lecture}', [LectureController::class, 'update'])->name('lectures.update');
-    Route::delete('/lectures/{lecture}', [LectureController::class, 'destroy'])->name('lectures.destroy');
+    Route::put('/courses/{course}/lectures/{lecture}', [LectureController::class, 'update'])->name('lectures.update');
+    Route::delete('/courses/{course}/lectures/{lecture}', [LectureController::class, 'destroy'])->name('lectures.destroy');
 
+    // Section routes
+    Route::get('/courses/{course}/lectures/{lecture}/sections/create', [\App\Http\Controllers\SectionController::class, 'create'])->name('sections.create');
+    Route::post('/courses/{course}/lectures/{lecture}/sections', [\App\Http\Controllers\SectionController::class, 'store'])->name('sections.store');
+    Route::get('/courses/{course}/lectures/{lecture}/sections/{section}', [\App\Http\Controllers\SectionController::class, 'show'])->name('sections.show');
+    Route::get('/courses/{course}/lectures/{lecture}/sections/{section}/edit', [\App\Http\Controllers\SectionController::class, 'edit'])->name('sections.edit');
+    Route::put('/courses/{course}/lectures/{lecture}/sections/{section}', [\App\Http\Controllers\SectionController::class, 'update'])->name('sections.update');
+    Route::delete('/courses/{course}/lectures/{lecture}/sections/{section}', [\App\Http\Controllers\SectionController::class, 'destroy'])->name('sections.destroy');
+    Route::get('/sections/{section}/download', [SectionController::class, 'download'])
+    ->name('sections.download')->middleware('auth');
     // Exam routes
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
     Route::get('/exams/create', [ExamController::class, 'create'])->name('exams.create');

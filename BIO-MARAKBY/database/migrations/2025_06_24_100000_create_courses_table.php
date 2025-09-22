@@ -13,7 +13,8 @@ return new class extends Migration
             $table->foreignId('user_id')->constrained()->onDelete('cascade')->unique();
             $table->string('name');
             $table->text('description')->nullable();
-            $table->enum('level', ['preparatory', 'secondary'])->default('preparatory');
+            $table->enum('stage', ['preparatory', 'secondary']);
+            $table->enum('level', ['1', '2', '3'])->default('1');
             $table->boolean('is_published')->default(false);
             $table->timestamps();
         });

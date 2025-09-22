@@ -13,7 +13,7 @@
             font-family: 'Tajawal', sans-serif;
             background-color: white;
             position: relative;
-            overflow: hidden;
+            overflow-x: hidden;
         }
 
         .background-gif {
@@ -28,78 +28,22 @@
             pointer-events: none;
         }
 
-        #sidebar {
-            transition: transform 0.3s ease-in-out;
-        }
-
-        #sidebar-overlay {
-            transition: opacity 0.3s ease-in-out;
-        }
-
         .main-box {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(8px);
-            -webkit-backdrop-filter: blur(8px);
             border-radius: 1rem;
             box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
+            max-height: calc(100vh - 2rem);
+            overflow-y: auto;
         }
 
-        table {
-            border-collapse: separate;
-            border-spacing: 0 10px;
+        .toggle-btn {
+            cursor: pointer;
+            transition: transform 0.2s ease;
         }
 
-        .responsive-table {
-            border-radius: 0.5rem;
-            overflow: hidden;
-        }
-
-        @media (max-width: 767px) {
-            .responsive-table {
-                display: block;
-            }
-
-            .responsive-table tbody,
-            .responsive-table tr,
-            .responsive-table td {
-                display: block;
-                width: 100%;
-            }
-
-            .responsive-table tr {
-                margin-bottom: 1rem;
-                border: 1px solid #e5e7eb;
-                border-radius: 0.5rem;
-                padding: 0.5rem;
-                background: white;
-            }
-
-            .responsive-table td {
-                padding: 0.5rem;
-                position: relative;
-            }
-
-            .responsive-table td::before {
-                content: attr(data-label);
-                font-weight: bold;
-                display: block;
-                margin-bottom: 0.25rem;
-                color: #374151;
-            }
-
-            .responsive-table thead {
-                display: none;
-            }
-        }
-
-        a,
-        button {
-            transition: all 0.2s ease;
-        }
-
-        a:hover,
-        button:hover {
-            opacity: 0.85;
+        .toggle-btn.rotate {
+            transform: rotate(90deg);
         }
     </style>
 </head>
@@ -109,9 +53,9 @@
 
     <div class="flex min-h-screen">
         @if (auth()->user()->role === 'teacher')
-        @include('partials.sidebar')
+            @include('partials.sidebar')
         @elseif (auth()->user()->role === 'student')
-        @include('partials.student_sidebar')
+            @include('partials.student_sidebar')
         @endif
 
         <div class="flex-1 p-4 md:p-6 md:mr-64">
@@ -125,53 +69,72 @@
                         </form>
                         <button class="md:hidden text-gray-800 focus:outline-none" id="sidebar-open">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
                     </div>
                 </div>
 
-                @if($user->role === 'teacher')
-                <a href="{{ route('courses.create') }}" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 mb-6 inline-block">إنشاء دورة جديدة</a>
+                @if(auth()->user()->role === 'teacher')
+                    <div class="mb-6">
+                        <a href="{{ route('courses.create') }}"
+                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 inline-block">إنشاء دورة جديدة</a>
+                    </div>
                 @endif
 
                 @if($courses->isEmpty())
-                <p class="text-gray-600">لا توجد دورات متاحة.</p>
+                    <p class="text-gray-600">لا توجد دورات متاحة.</p>
                 @else
-                <div class="overflow-x-auto">
-                    <table class="w-full responsive-table">
-                        <thead>
-                            <tr class="bg-gray-100 text-gray-800">
-                                <th class="p-3 text-right">الاسم</th>
-                                <th class="p-3 text-right">المستوى</th>
-                                <th class="p-3 text-right">منشور</th>
-                                <th class="p-3 text-right">الإجراءات</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            @foreach($courses as $course)
-                            <tr class="bg-white shadow-sm rounded border border-gray-200 mb-2">
-                                <td class="p-3" data-label="الاسم">{{ $course->name }}</td>
-                                <td class="p-3" data-label="المستوى">{{ $course->level === 'preparatory' ? 'إعدادي' : 'ثانوي' }}</td>
-                                <td class="p-3" data-label="منشور">{{ $course->is_published ? 'نعم' : 'لا' }}</td>
-                                <td class="p-3 whitespace-nowrap md:whitespace-normal" data-label="الإجراءات">
-                                    <div class="flex flex-col md:flex-row md:space-x-2 md:space-x-reverse">
-                                        <a href="{{ route('courses.show', $course) }}" class="text-blue-500 hover:text-blue-600 mb-2 md:mb-0">عرض</a>
-                                        @if($user->role === 'teacher')
-                                        <a href="{{ route('courses.edit', $course) }}" class="text-green-500 hover:text-green-600 mb-2 md:mb-0">تعديل</a>
-                                        <form action="{{ route('courses.destroy', $course) }}" method="POST" class="inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-500 hover:text-red-600" onclick="return confirm('هل أنت متأكد من حذف هذه الدورة؟')">حذف</button>
-                                        </form>
+                    <div>
+                        @foreach(['preparatory' => 'إعدادي', 'secondary' => 'ثانوي'] as $stage => $stageLabel)
+                            @if($courses->has($stage))
+                                <h2 class="text-lg md:text-xl font-bold text-gray-800 mt-6 mb-4">{{ $stageLabel }}</h2>
+                                <div class="space-y-4">
+                                    @foreach(['1' => 'الأول', '2' => 'الثاني', '3' => 'الثالث'] as $level => $levelLabel)
+                                        @if($courses[$stage]->has($level))
+                                            <div class="border rounded-lg shadow-sm">
+                                                <div class="flex items-center justify-between bg-gray-100 px-4 py-2 cursor-pointer level-header">
+                                                    <div class="flex items-center">
+                                                        <svg class="w-4 h-4 text-gray-600 toggle-btn mr-2"
+                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                                d="M9 5l7 7-7 7" />
+                                                        </svg>
+                                                        <span class="font-semibold text-gray-700">المستوى {{ $levelLabel }}</span>
+                                                    </div>
+                                                </div>
+                                                <div class="hidden px-6 py-3 space-y-3 level-content">
+                                                    @foreach($courses[$stage][$level] as $course)
+                                                        <div class="p-3 bg-white border rounded-lg shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
+                                                            <div>
+                                                                <span class="font-medium text-gray-800">{{ $course->name }}</span>
+                                                                @if(auth()->user()->role === 'teacher')
+                                                                    <span class="ml-2 text-sm text-gray-500">({{ $course->is_published ? 'منشور' : 'غير منشور' }})</span>
+                                                                @endif
+                                                            </div>
+                                                            <div class="flex space-x-2 space-x-reverse mt-2 md:mt-0">
+                                                                <a href="{{ route('courses.show', $course) }}" class="text-blue-500 hover:text-blue-600">عرض</a>
+                                                                @if(auth()->user()->role === 'teacher')
+                                                                    <a href="{{ route('courses.edit', $course) }}" class="text-green-500 hover:text-green-600">تعديل</a>
+                                                                    <form action="{{ route('courses.destroy', $course) }}" method="POST" class="inline">
+                                                                        @csrf
+                                                                        @method('DELETE')
+                                                                        <button type="submit" class="text-red-500 hover:text-red-600"
+                                                                            onclick="return confirm('هل أنت متأكد من حذف هذه الدورة؟')">حذف</button>
+                                                                    </form>
+                                                                @endif
+                                                            </div>
+                                                        </div>
+                                                    @endforeach
+                                                </div>
+                                            </div>
                                         @endif
-                                    </div>
-                                </td>
-                            </tr>
-                            @endforeach
-                        </tbody>
-                    </table>
-                </div>
+                                    @endforeach
+                                </div>
+                            @endif
+                        @endforeach
+                    </div>
                 @endif
 
                 <a href="{{ route('dashboard') }}" class="mt-6 inline-block text-blue-500 hover:text-blue-600">العودة إلى لوحة التحكم</a>
@@ -179,6 +142,16 @@
         </div>
     </div>
 
+    <script>
+        document.querySelectorAll(".level-header").forEach(header => {
+            header.addEventListener("click", () => {
+                const content = header.nextElementSibling;
+                const icon = header.querySelector(".toggle-btn");
+                content.classList.toggle("hidden");
+                icon.classList.toggle("rotate");
+            });
+        });
+    </script>
     <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
 
