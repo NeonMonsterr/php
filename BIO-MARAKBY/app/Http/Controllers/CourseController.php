@@ -3,7 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Course;
-use App\Models\User;
+use App\Models\Level;
+use App\Models\Stage;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Support\Facades\Auth;
@@ -19,9 +20,6 @@ class CourseController extends Controller
 
     /**
      * Display a listing of courses, with filtering for teachers and enrolled course for students.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\View\View
      */
     public function index(Request $request)
     {
@@ -29,43 +27,39 @@ class CourseController extends Controller
         $this->authorize('viewAny', Course::class);
 
         if ($user->role === 'teacher') {
-            // Teachers see all their courses, filtered by stage and level
-            $query = Course::where('user_id', $user->id)->with('user');
-
-            if ($request->filled('stage')) {
-                $query->where('stage', $request->input('stage'));
-            }
-            if ($request->filled('level')) {
-                $query->where('level', $request->input('level'));
-            }
-
-            $courses = $query->orderBy('stage')->orderBy('level')
-                            ->get()
-                            ->groupBy(['stage', 'level']);
+            // Get levels with stages and courses filtered by this teacher
+            $levels = Level::with(['stages.courses' => function ($query) use ($user) {
+                $query->where('user_id', $user->id);
+            }])->get();
         } else {
-            // Students see only their enrolled course, if any
-            $courses = $user->enrolledCourse ? collect([$user->enrolledCourse])->groupBy(['stage', 'level']) : collect([]);
+            // Students see only their enrolled course
+            $levels = Level::with(['stages.courses' => function ($query) use ($user) {
+                if ($user->enrolledCourse) {
+                    $query->where('id', $user->enrolledCourse->id);
+                } else {
+                    $query->whereRaw('0=1'); // no courses
+                }
+            }])->get();
         }
 
-        return view('courses.index', compact('courses', 'user'));
+        return view('courses.index', compact('levels', 'user'));
     }
 
     /**
      * Show the form for creating a new course.
-     *
-     * @return \Illuminate\View\View
      */
     public function create()
     {
         $this->authorize('create', Course::class);
-        return view('courses.create');
+
+        $levels = Level::all();
+        $stages = Stage::all();
+
+        return view('courses.create', compact('levels', 'stages'));
     }
 
     /**
      * Store a newly created course.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function store(Request $request)
     {
@@ -73,18 +67,18 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string'],
-            'stage' => ['required', 'in:preparatory,secondary'],
-            'level' => ['required', 'in:1,2,3'],
+            'description' => ['nullable', 'string'],
+            'stage_id' => ['required', 'exists:stages,id'],
+            'level_id' => ['required', 'exists:levels,id'],
             'is_published' => ['nullable', 'boolean'],
         ]);
 
         $course = Auth::user()->courses()->create([
             'name' => $validated['name'],
             'description' => $validated['description'],
-            'stage' => $validated['stage'],
-            'level' => $validated['level'],
-            'is_published' => $request->has('is_published'),
+            'stage_id' => $validated['stage_id'],
+            'level_id' => $validated['level_id'],
+            'is_published' => $request->boolean('is_published'),
         ]);
 
         return redirect()->route('courses.index')->with('success', "الدورة {$course->name} تم إنشاؤها بنجاح!");
@@ -92,9 +86,6 @@ class CourseController extends Controller
 
     /**
      * Display the specified course.
-     *
-     * @param \App\Models\Course $course
-     * @return \Illuminate\View\View
      */
     public function show(Course $course)
     {
@@ -108,28 +99,26 @@ class CourseController extends Controller
         }
 
         $lectures = $query->orderBy('position')->get();
+        $course->load(['stage', 'level', 'user', 'lectures']);
 
         return view('courses.show', compact('course', 'lectures'));
     }
 
     /**
      * Show the form for editing the specified course.
-     *
-     * @param \App\Models\Course $course
-     * @return \Illuminate\View\View
      */
     public function edit(Course $course)
     {
         $this->authorize('update', $course);
-        return view('courses.edit', compact('course'));
+
+        $levels = Level::all();
+        $stages = Stage::all();
+
+        return view('courses.edit', compact('course', 'levels', 'stages'));
     }
 
     /**
      * Update the specified course.
-     *
-     * @param \Illuminate\Http\Request $request
-     * @param \App\Models\Course $course
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function update(Request $request, Course $course)
     {
@@ -137,30 +126,25 @@ class CourseController extends Controller
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:255'],
-            'description' => ['required', 'string'],
-            'stage' => ['required', 'in:preparatory,secondary'],
-            'level' => ['required', 'in:1,2,3'],
+            'description' => ['nullable', 'string'],
+            'stage_id' => ['required', 'exists:stages,id'],
+            'level_id' => ['required', 'exists:levels,id'],
             'is_published' => ['nullable', 'boolean'],
         ]);
 
         $course->update([
             'name' => $validated['name'],
             'description' => $validated['description'],
-            'stage' => $validated['stage'],
-            'level' => $validated['level'],
-            'is_published' => $request->has('is_published'),
+            'stage_id' => $validated['stage_id'],
+            'level_id' => $validated['level_id'],
+            'is_published' => $request->boolean('is_published'),
         ]);
-
-        $course->refresh();
 
         return redirect()->route('courses.index')->with('success', "الدورة {$course->name} تم تحديثها بنجاح!");
     }
 
     /**
      * Remove the specified course.
-     *
-     * @param \App\Models\Course $course
-     * @return \Illuminate\Http\RedirectResponse
      */
     public function destroy(Course $course)
     {

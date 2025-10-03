@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>إدارة الطلاب</title>
+    <title>إدارة المستويات</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
@@ -32,15 +32,6 @@
             -webkit-backdrop-filter: blur(14px);
             border-radius: 16px;
             box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
-        }
-
-        th,
-        td {
-            color: #111827;
-        }
-
-        .table th {
-            background-color: rgba(249, 250, 251, 0.9);
         }
 
         @media (max-width: 767px) {
@@ -89,7 +80,7 @@
 
                 {{-- Header --}}
                 <div class="flex justify-between items-center mb-6">
-                    <h1 class="text-xl md:text-2xl font-bold text-gray-900">👨‍🎓 إدارة الطلاب</h1>
+                    <h1 class="text-xl md:text-2xl font-bold text-gray-900">🎯 إدارة المستويات</h1>
                     <button class="md:hidden text-gray-700" id="sidebar-open">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -98,70 +89,53 @@
                     </button>
                 </div>
 
-                {{-- Add New Student --}}
-                <a href="{{ route('users.create') }}"
-                    class="bg-gradient-to-r from-blue-500 to-cyan-500 text-white px-5 py-2 rounded-md font-semibold hover:from-blue-600 hover:to-cyan-600 transition mb-6 inline-block">
-                    ➕ إضافة طالب جديد
+                {{-- Add New Level --}}
+                <a href="{{ route('levels.create') }}"
+                    class="bg-gradient-to-r from-green-500 to-emerald-500 text-white px-5 py-2 rounded-md font-semibold hover:from-green-600 hover:to-emerald-600 transition mb-6 inline-block">
+                    ➕ إضافة مستوى جديد
                 </a>
 
-                {{-- Search (Always visible) --}}
-                <div class="mb-6">
-                    <form method="GET" action="{{ route('students.search') }}" class="flex items-center">
-                        <input type="text" name="search" value="{{ request('search') }}"
-                            placeholder="🔍 البحث عن الطلاب بالاسم أو البريد..."
-                            class="w-full max-w-md p-2 border border-gray-300 rounded-r-md focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white text-gray-800">
-                        <button type="submit"
-                            class="bg-blue-500 text-white px-4 py-2 rounded-l-md hover:bg-blue-600">بحث</button>
-                    </form>
-                </div>
-
-                @if ($students->isEmpty())
-                    <p class="text-gray-500">🚫 لا يوجد طلاب مسجلين{{ request('search') ? ' بناءً على البحث "' . request('search') . '"' : '' }}.</p>
+                @if ($levels->isEmpty())
+                    <p class="text-gray-500">🚫 لا يوجد مستويات مسجلة.</p>
                 @else
-                    {{-- Students Table --}}
+                    {{-- Levels Table --}}
                     <div class="overflow-x-auto max-h-[600px] overflow-y-auto rounded-lg border border-gray-200 shadow-sm">
                         <table class="w-full border-collapse responsive-table text-sm">
                             <thead class="sticky top-0 bg-gray-50 shadow-sm z-10">
                                 <tr>
-                                    <th class="p-3 text-right">👤 الاسم</th>
-                                    <th class="p-3 text-right">📧 البريد الإلكتروني</th>
-                                    <th class="p-3 text-right">📚 الدورة</th>
-                                    <th class="p-3 text-right">💳 الاشتراك</th>
+                                    <th class="p-3 text-right">🎯 اسم المستوى</th>
+                                    <th class="p-3 text-right">📖 الوصف</th>
+                                    <th class="p-3 text-right">🏫 المراحل المرتبطة</th>
                                     <th class="p-3 text-right">⚙️ الإجراءات</th>
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach ($students as $student)
+                                @foreach ($levels as $level)
                                     <tr class="border-b hover:bg-gray-50 transition">
-                                        <td class="p-2 whitespace-nowrap" data-label="الاسم">{{ $student->name }}</td>
-                                        <td class="p-2 whitespace-nowrap" data-label="البريد الإلكتروني">
-                                            {{ $student->email }}</td>
-                                        <td class="p-2" data-label="الدورة">
-                                            {{ $student->enrolledCourse?->name ?? 'لا يوجد' }}
-                                        </td>
-                                        <td class="p-2" data-label="الاشتراك">
-                                            {{ match ($student->subscription?->status) {
-                                                'active' => 'نشط',
-                                                'expired' => 'منتهي',
-                                                'canceled' => 'ملغي',
-                                                default => 'لا يوجد',
-                                            } }}
-                                            @if ($student->subscription)
-                                                ({{ $student->subscription->type === 'monthly' ? 'شهري' : 'فصلي' }})
+                                        <td class="p-2 whitespace-nowrap" data-label="اسم المستوى">{{ $level->name }}</td>
+                                        <td class="p-2" data-label="الوصف">{{ $level->description ?? '—' }}</td>
+                                        <td class="p-2" data-label="المراحل">
+                                            @if($level->stages->isNotEmpty())
+                                                <ul class="list-disc list-inside">
+                                                    @foreach($level->stages as $stage)
+                                                        <li>{{ $stage->name }}</li>
+                                                    @endforeach
+                                                </ul>
+                                            @else
+                                                <span class="text-gray-400">لا يوجد</span>
                                             @endif
                                         </td>
                                         <td class="p-2 whitespace-nowrap" data-label="الإجراءات">
                                             <div class="flex flex-wrap gap-2">
-                                                <a href="{{ route('users.show', $student) }}"
+                                                <a href="{{ route('levels.show', $level) }}"
                                                     class="text-sky-500 hover:text-sky-600 text-sm">👁️ عرض</a>
-                                                <a href="{{ route('users.edit', $student) }}"
+                                                <a href="{{ route('levels.edit', $level) }}"
                                                     class="text-green-500 hover:text-green-600 text-sm">✏️ تعديل</a>
-                                                <form action="{{ route('users.destroy', $student) }}" method="POST"
-                                                    class="inline">
+                                                <form action="{{ route('levels.destroy', $level) }}" method="POST" class="inline">
                                                     @csrf
                                                     @method('DELETE')
                                                     <button type="submit"
-                                                        onclick="return confirm('هل أنت متأكد من حذف هذا الطالب؟')"
+                                                        onclick="return confirm('هل أنت متأكد من حذف هذا المستوى؟')"
                                                         class="text-red-500 hover:text-red-600 text-sm">🗑️ حذف</button>
                                                 </form>
                                             </div>
@@ -174,12 +148,12 @@
 
                     {{-- Pagination --}}
                     <div class="mt-6 flex justify-center">
-                        {{ $students->appends(request()->query())->links('pagination::tailwind') }}
+                        {{ $levels->links('pagination::tailwind') }}
                     </div>
                 @endif
 
-                <a href="{{ route('users.index') }}"
-                    class="mt-6 inline-block text-cyan-600 hover:text-cyan-500 text-sm">⬅ العودة إلى قائمة الطلاب</a>
+                <a href="{{ route('dashboard') }}"
+                    class="mt-6 inline-block text-cyan-600 hover:text-cyan-500 text-sm">⬅ العودة إلى لوحة التحكم</a>
             </div>
         </div>
     </div>

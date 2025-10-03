@@ -11,9 +11,11 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->enum('level',['1','2','3'])->nullable();
-            $table->enum('stage',['preparatory', 'secondary'])->nullable();
+        Schema::create('levels', function (Blueprint $table) {
+            $table->id();
+            $table->string('name'); // e.g. "إعدادي", "ثانوي"
+            $table->text('description')->nullable();
+            $table->timestamps();
         });
     }
 
@@ -22,8 +24,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn(['level', 'stage']);
-        });
+        Schema::dropIfExists('levels');
     }
 };

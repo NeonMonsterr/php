@@ -74,6 +74,12 @@
                 padding: 30px 20px;
             }
         }
+
+        .note-text {
+            color: #6b7280;
+            font-size: 0.875rem;
+            margin-top: 0.25rem;
+        }
     </style>
 </head>
 
@@ -94,6 +100,16 @@
                         </svg>
                     </button>
                 </div>
+
+                @if ($errors->any())
+                    <div class="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-red-700">
+                        <ul class="text-sm list-disc pr-4">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
+                @endif
 
                 <form method="POST" action="{{ route('users.store') }}">
                     @csrf
@@ -133,16 +149,77 @@
                             class="w-full p-2 border rounded form-input focus:outline-none focus:ring-2">
                     </div>
 
+                    <div class="mb-4">
+                        <label for="phone_number" class="block form-label mb-2">رقم الهاتف</label>
+                        <input type="text" id="phone_number" name="phone_number" required
+                            value="{{ old('phone_number') }}"
+                            class="w-full p-2 border rounded form-input focus:outline-none focus:ring-2"
+                            placeholder="01012345678">
+                        @error('phone_number')
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="parent_phone_number" class="block form-label mb-2">رقم هاتف ولي الأمر</label>
+                        <input type="text" id="parent_phone_number" name="parent_phone_number" required
+                            value="{{ old('parent_phone_number') }}"
+                            class="w-full p-2 border rounded form-input focus:outline-none focus:ring-2"
+                            placeholder="01012345678">
+                        @error('parent_phone_number')
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Level Selection -->
+                    <div class="mb-4">
+                        <label for="level_id" class="block form-label mb-2">المستوى</label>
+                        <select id="level_id" name="level_id"
+                            class="w-full p-2 border rounded form-input text-black bg-white text-sm">
+                            <option value="">اختر المستوى...</option>
+                            @foreach ($levels as $level)
+                                <option value="{{ $level->id }}" {{ old('level_id') == $level->id ? 'selected' : '' }}>
+                                    {{ $level->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('level_id')
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                    </div>
+
+                    <!-- Stage Selection -->
+                    <div class="mb-4">
+                        <label for="stage_id" class="block form-label mb-2">المرحلة</label>
+                        <select id="stage_id" name="stage_id"
+                            class="w-full p-2 border rounded form-input text-black bg-white text-sm">
+                            <option value="">اختر المرحلة...</option>
+                            @foreach ($stages as $stage)
+                                <option value="{{ $stage->id }}"
+                                    data-level="{{ $stage->level_id }}"
+                                    {{ old('stage_id') == $stage->id ? 'selected' : '' }}>
+                                    {{ $stage->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                        @error('stage_id')
+                        <p class="text-red-400 text-sm mt-1">{{ $message }}</p>
+                        @enderror
+                        <p class="note-text">يرجى اختيار المستوى أولاً لعرض المراحل المتاحة</p>
+                    </div>
+
                     <div class="mb-6">
                         <label for="course_id" class="block form-label mb-2">الدورة</label>
                         <select id="course_id" name="course_id"
                             class="w-full p-2 border rounded form-input text-black bg-white text-sm">
-                            <option value="">لا يوجد</option>
+                            <option value="">اختر الدورة...</option>
                             @foreach ($courses as $course)
-                            <option value="{{ $course->id }}"
-                                {{ old('course_id') == $course->id ? 'selected' : '' }}>
-                                {{ $course->name }}
-                            </option>
+                                <option value="{{ $course->id }}"
+                                    data-stage="{{ $course->stage_id }}"
+                                    data-level="{{ $course->level_id }}"
+                                    {{ old('course_id') == $course->id ? 'selected' : '' }}>
+                                    {{ $course->name }}
+                                </option>
                             @endforeach
                         </select>
                         @error('course_id')
@@ -162,6 +239,78 @@
     </div>
 
     <script src="{{ asset('js/sidebar.js') }}"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const stageSelect = document.getElementById('stage_id');
+            const levelSelect = document.getElementById('level_id');
+            const courseSelect = document.getElementById('course_id');
+
+            // Filter stages based on selected level
+            function filterStages() {
+                const selectedLevel = levelSelect.value;
+
+                Array.from(stageSelect.options).forEach(option => {
+                    if (!option.value) return; // skip placeholder
+                    const level = option.dataset.level;
+                    option.style.display = (level === selectedLevel) ? 'block' : 'none';
+                });
+
+                // Reset selection if current stage not matching
+                const selectedStage = stageSelect.value;
+                const selectedOption = stageSelect.querySelector(`option[value="${selectedStage}"]`);
+                if (selectedOption && selectedOption.style.display === 'none') {
+                    stageSelect.value = '';
+                }
+
+                // Trigger course filter after stage reset
+                filterCourses();
+            }
+
+            // Filter courses based on selected stage and level
+            function filterCourses() {
+                const selectedStage = stageSelect.value;
+                const selectedLevel = levelSelect.value;
+
+                Array.from(courseSelect.options).forEach(option => {
+                    if (!option.value) return; // skip placeholder
+                    const stage = option.dataset.stage;
+                    const level = option.dataset.level;
+                    option.style.display = (stage === selectedStage && level === selectedLevel) ? 'block' : 'none';
+                });
+
+                // Reset selection if current course not matching
+                const selectedCourse = courseSelect.value;
+                const selectedOption = courseSelect.querySelector(`option[value="${selectedCourse}"]`);
+                if (selectedOption && selectedOption.style.display === 'none') {
+                    courseSelect.value = '';
+                }
+            }
+
+            // Add event listeners
+            levelSelect.addEventListener('change', filterStages);
+            stageSelect.addEventListener('change', filterCourses);
+
+            // Initial filter on page load
+            filterStages();
+            filterCourses();
+
+            // Add phone number formatting
+            const phoneInputs = document.querySelectorAll('input[type="text"][name*="phone"]');
+            phoneInputs.forEach(input => {
+                input.addEventListener('input', function(e) {
+                    // Remove any non-digit characters
+                    let value = e.target.value.replace(/\D/g, '');
+
+                    // Limit to 11 digits (01012345678)
+                    if (value.length > 11) {
+                        value = value.substring(0, 11);
+                    }
+
+                    e.target.value = value;
+                });
+            });
+        });
+    </script>
 </body>
 
 </html>

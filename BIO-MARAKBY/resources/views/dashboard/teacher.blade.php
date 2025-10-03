@@ -5,7 +5,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>لوحة تحكم المعلم</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    @vite(['resources/css/app.css', 'resources/js/app.js'])
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;900&display=swap" rel="stylesheet" />
     <style>
         body {
@@ -46,7 +46,6 @@
             opacity: 0.85;
         }
 
-        /* Confetti sparkle for top student */
         @keyframes sparkle {
             0% {
                 transform: rotate(0deg) scale(1);
@@ -143,21 +142,10 @@
                                 {{-- Student Name --}}
                                 <h3 class="mt-6 text-lg font-bold text-gray-800">{{ $top->name }}</h3>
 
-                                @php
-                                    $stageMap = [
-                                        'preparatory' => 'اعدادي',
-                                        'secondary' => 'ثانوي',
-                                    ];
-                                    $levelMap = [
-                                        1 => 'الصف الاول',
-                                        2 => 'الصف الثاني',
-                                        3 => 'الصف الثالث',
-                                    ];
-                                @endphp
                                 {{-- Level & Stage --}}
                                 <p class="text-gray-600 mt-1">
-                                    المستوى: <strong>{{ $levelMap[$top->level] ?? 'غير محدد' }}</strong> | المرحلة:
-                                    <strong>{{ $stageMap[$top->stage] ?? 'غير محددة' }}</strong>
+                                    المستوى: <strong>{{ $top->level_name ?? 'غير محدد' }}</strong> |
+                                    المرحلة: <strong>{{ $top->stage_name ?? 'غير محددة' }}</strong>
                                 </p>
 
                                 {{-- Average Score --}}

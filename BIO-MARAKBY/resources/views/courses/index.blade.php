@@ -52,9 +52,9 @@
     <img src="/images/biology-bg.gif" alt="Biology Background" class="background-gif">
 
     <div class="flex min-h-screen">
-        @if (auth()->user()->role === 'teacher')
+        @if(auth()->user()->role === 'teacher')
             @include('partials.sidebar')
-        @elseif (auth()->user()->role === 'student')
+        @elseif(auth()->user()->role === 'student')
             @include('partials.student_sidebar')
         @endif
 
@@ -70,80 +70,83 @@
                         <button class="md:hidden text-gray-800 focus:outline-none" id="sidebar-open">
                             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                    d="M4 6h16M4 12h16M4 18h16" />
+                                      d="M4 6h16M4 12h16M4 18h16" />
                             </svg>
                         </button>
                     </div>
                 </div>
 
+                {{-- زر إنشاء دورة للمعلم فقط --}}
                 @if(auth()->user()->role === 'teacher')
                     <div class="mb-6">
                         <a href="{{ route('courses.create') }}"
-                            class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 inline-block">إنشاء دورة جديدة</a>
+                           class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600 inline-block">
+                            إنشاء دورة جديدة
+                        </a>
                     </div>
                 @endif
 
-                @if($courses->isEmpty())
-                    <p class="text-gray-600">لا توجد دورات متاحة.</p>
-                @else
-                    <div>
-                        @foreach(['preparatory' => 'إعدادي', 'secondary' => 'ثانوي'] as $stage => $stageLabel)
-                            @if($courses->has($stage))
-                                <h2 class="text-lg md:text-xl font-bold text-gray-800 mt-6 mb-4">{{ $stageLabel }}</h2>
-                                <div class="space-y-4">
-                                    @foreach(['1' => 'الأول', '2' => 'الثاني', '3' => 'الثالث'] as $level => $levelLabel)
-                                        @if($courses[$stage]->has($level))
-                                            <div class="border rounded-lg shadow-sm">
-                                                <div class="flex items-center justify-between bg-gray-100 px-4 py-2 cursor-pointer level-header">
-                                                    <div class="flex items-center">
-                                                        <svg class="w-4 h-4 text-gray-600 toggle-btn mr-2"
-                                                            fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                                                                d="M9 5l7 7-7 7" />
-                                                        </svg>
-                                                        <span class="font-semibold text-gray-700">المستوى {{ $levelLabel }}</span>
-                                                    </div>
-                                                </div>
-                                                <div class="hidden px-6 py-3 space-y-3 level-content">
-                                                    @foreach($courses[$stage][$level] as $course)
-                                                        <div class="p-3 bg-white border rounded-lg shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
-                                                            <div>
-                                                                <span class="font-medium text-gray-800">{{ $course->name }}</span>
-                                                                @if(auth()->user()->role === 'teacher')
-                                                                    <span class="ml-2 text-sm text-gray-500">({{ $course->is_published ? 'منشور' : 'غير منشور' }})</span>
-                                                                @endif
-                                                            </div>
-                                                            <div class="flex space-x-2 space-x-reverse mt-2 md:mt-0">
-                                                                <a href="{{ route('courses.show', $course) }}" class="text-blue-500 hover:text-blue-600">عرض</a>
-                                                                @if(auth()->user()->role === 'teacher')
-                                                                    <a href="{{ route('courses.edit', $course) }}" class="text-green-500 hover:text-green-600">تعديل</a>
-                                                                    <form action="{{ route('courses.destroy', $course) }}" method="POST" class="inline">
-                                                                        @csrf
-                                                                        @method('DELETE')
-                                                                        <button type="submit" class="text-red-500 hover:text-red-600"
-                                                                            onclick="return confirm('هل أنت متأكد من حذف هذه الدورة؟')">حذف</button>
-                                                                    </form>
-                                                                @endif
-                                                            </div>
-                                                        </div>
-                                                    @endforeach
-                                                </div>
+                {{-- عرض الدورات --}}
+                @forelse($levels as $level)
+                    <h2 class="text-lg md:text-xl font-bold text-gray-800 mt-6 mb-4">المستوى {{ $level->name }}</h2>
+                    @foreach($level->stages as $stage)
+                        @if($stage->courses->isNotEmpty())
+                            <div class="border rounded-lg shadow-sm mb-4">
+                                {{-- رأس المرحلة --}}
+                                <div class="flex items-center justify-between bg-gray-100 px-4 py-2 cursor-pointer stage-header">
+                                    <div class="flex items-center">
+                                        <svg class="w-4 h-4 text-gray-600 toggle-btn mr-2"
+                                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                  d="M9 5l7 7-7 7" />
+                                        </svg>
+                                        <span class="font-semibold text-gray-700">{{ $stage->name }}</span>
+                                    </div>
+                                </div>
+
+                                {{-- قائمة الدورات --}}
+                                <div class="hidden px-6 py-3 space-y-3 stage-content">
+                                    @foreach($stage->courses as $course)
+                                        <div class="p-3 bg-white border rounded-lg shadow-sm flex flex-col md:flex-row md:items-center md:justify-between">
+                                            <div>
+                                                <span class="font-medium text-gray-800">{{ $course->name }}</span>
+                                                @if(auth()->user()->role === 'teacher')
+                                                    <span class="ml-2 text-sm text-gray-500">
+                                                        ({{ $course->is_published ? 'منشور' : 'غير منشور' }})
+                                                    </span>
+                                                @endif
                                             </div>
-                                        @endif
+                                            <div class="flex space-x-2 space-x-reverse mt-2 md:mt-0">
+                                                <a href="{{ route('courses.show', $course) }}" class="text-blue-500 hover:text-blue-600">عرض</a>
+                                                @if(auth()->user()->role === 'teacher')
+                                                    <a href="{{ route('courses.edit', $course) }}" class="text-green-500 hover:text-green-600">تعديل</a>
+                                                    <form action="{{ route('courses.destroy', $course) }}" method="POST" class="inline">
+                                                        @csrf
+                                                        @method('DELETE')
+                                                        <button type="submit" class="text-red-500 hover:text-red-600"
+                                                                onclick="return confirm('هل أنت متأكد من حذف هذه الدورة؟')">حذف</button>
+                                                    </form>
+                                                @endif
+                                            </div>
+                                        </div>
                                     @endforeach
                                 </div>
-                            @endif
-                        @endforeach
-                    </div>
-                @endif
+                            </div>
+                        @endif
+                    @endforeach
+                @empty
+                    <p class="text-gray-600">لا توجد دورات متاحة.</p>
+                @endforelse
 
-                <a href="{{ route('dashboard') }}" class="mt-6 inline-block text-blue-500 hover:text-blue-600">العودة إلى لوحة التحكم</a>
+                <a href="{{ route('dashboard') }}" class="mt-6 inline-block text-blue-500 hover:text-blue-600">
+                    العودة إلى لوحة التحكم
+                </a>
             </div>
         </div>
     </div>
 
     <script>
-        document.querySelectorAll(".level-header").forEach(header => {
+        document.querySelectorAll(".stage-header").forEach(header => {
             header.addEventListener("click", () => {
                 const content = header.nextElementSibling;
                 const icon = header.querySelector(".toggle-btn");
@@ -154,5 +157,4 @@
     </script>
     <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
-
 </html>

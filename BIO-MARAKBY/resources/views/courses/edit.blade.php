@@ -7,7 +7,6 @@
     <title>تعديل الدورة: {{ $course->name }}</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
-
     <style>
         body {
             font-family: 'Tajawal', sans-serif;
@@ -29,7 +28,7 @@
         }
 
         .form-container {
-            background: rgba(255, 255, 255, 0.75);
+            background: rgba(255, 255, 255, 0.9);
             backdrop-filter: blur(8px);
             -webkit-backdrop-filter: blur(8px);
             border-radius: 1rem;
@@ -45,7 +44,7 @@
         input,
         textarea,
         select {
-            background-color: rgba(255, 255, 255, 0.9);
+            background-color: rgba(255, 255, 255, 0.95);
             border: 1px solid #ccc;
             border-radius: 0.5rem;
             padding: 0.75rem;
@@ -81,20 +80,22 @@
             <div class="max-w-md mx-auto form-container">
                 <h1 class="text-2xl font-bold text-gray-800 mb-6">تعديل الدورة: {{ $course->name }}</h1>
 
+                {{-- Display validation errors --}}
                 @if ($errors->any())
-                <div class="mb-4 text-red-500">
-                    <ul>
-                        @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
+                    <div class="mb-4 text-red-500 bg-red-50 border border-red-200 rounded-lg p-3">
+                        <ul class="list-disc list-inside">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
                 @endif
 
                 <form method="POST" action="{{ route('courses.update', $course) }}">
                     @csrf
                     @method('PUT')
 
+                    {{-- Course Name --}}
                     <div class="mb-4">
                         <label for="name" class="block text-gray-700 mb-2">الاسم</label>
                         <input type="text" name="name" id="name" value="{{ old('name', $course->name) }}" required>
@@ -103,6 +104,7 @@
                         @enderror
                     </div>
 
+                    {{-- Description --}}
                     <div class="mb-4">
                         <label for="description" class="block text-gray-700 mb-2">الوصف</label>
                         <textarea name="description" id="description" required>{{ old('description', $course->description) }}</textarea>
@@ -111,29 +113,39 @@
                         @enderror
                     </div>
 
+                    {{-- Stage --}}
                     <div class="mb-4">
-                        <label for="stage" class="block text-gray-700 mb-2">المرحلة</label>
-                        <select name="stage" id="stage" required>
-                            <option value="preparatory" {{ old('stage', $course->stage) === 'preparatory' ? 'selected' : '' }}>إعدادي</option>
-                            <option value="secondary" {{ old('stage', $course->stage) === 'secondary' ? 'selected' : '' }}>ثانوي</option>
+                        <label for="stage_id" class="block text-gray-700 mb-2">المرحلة</label>
+                        <select name="stage_id" id="stage_id" required>
+                            <option value="" disabled {{ old('stage_id', $course->stage_id) ? '' : 'selected' }}>اختر المرحلة</option>
+                            @foreach($stages as $stage)
+                                <option value="{{ $stage->id }}" {{ old('stage_id', $course->stage_id) == $stage->id ? 'selected' : '' }}>
+                                    {{ $stage->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('stage')
+                        @error('stage_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
+                    {{-- Level --}}
                     <div class="mb-4">
-                        <label for="level" class="block text-gray-700 mb-2">المستوى</label>
-                        <select name="level" id="level" required>
-                            <option value="1" {{ old('level', $course->level) === '1' ? 'selected' : '' }}>الأول</option>
-                            <option value="2" {{ old('level', $course->level) === '2' ? 'selected' : '' }}>الثاني</option>
-                            <option value="3" {{ old('level', $course->level) === '3' ? 'selected' : '' }}>الثالث</option>
+                        <label for="level_id" class="block text-gray-700 mb-2">المستوى</label>
+                        <select name="level_id" id="level_id" required>
+                            <option value="" disabled {{ old('level_id', $course->level_id) ? '' : 'selected' }}>اختر المستوى</option>
+                            @foreach($levels as $level)
+                                <option value="{{ $level->id }}" {{ old('level_id', $course->level_id) == $level->id ? 'selected' : '' }}>
+                                    {{ $level->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('level')
+                        @error('level_id')
                         <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
+                    {{-- Published --}}
                     <div class="mb-4">
                         <label class="flex items-center">
                             <input type="checkbox" name="is_published" value="1" class="ml-2" {{ old('is_published', $course->is_published) ? 'checked' : '' }}>
@@ -144,15 +156,18 @@
                         @enderror
                     </div>
 
-                    <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600">تحديث الدورة</button>
+                    <button type="submit" class="w-full bg-blue-500 text-white p-2 rounded hover:bg-blue-600 font-semibold shadow-md">
+                        تحديث الدورة
+                    </button>
                 </form>
 
-                <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600 mt-4 inline-block">العودة إلى الدورات</a>
+                <a href="{{ route('courses.index') }}" class="text-blue-500 hover:text-blue-600 mt-4 inline-block font-medium">
+                    العودة إلى الدورات
+                </a>
             </div>
         </div>
     </div>
 
     <script src="{{ asset('js/sidebar.js') }}"></script>
 </body>
-
 </html>

@@ -166,24 +166,46 @@
             </div>
 
             {{-- Top Students --}}
-            @if(isset($topUsers) && $topUsers->count() > 0)
-                <div class="card max-w-4xl mx-auto">
-                    <div class="section-header">🏆 أفضل الطلاب</div>
+           @if (isset($topUsers) && $topUsers->count() > 0)
+                <div class="max-w-6xl mx-auto card">
+                    <h2 class="text-2xl font-bold text-yellow-600 mb-4 flex items-center">
+                        🏆 أفضل الطلاب
+                    </h2>
+
                     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                        @foreach($topUsers as $index => $top)
-                            <div class="bg-white border rounded-xl shadow-lg p-5 text-center relative hover:scale-105 transition-transform duration-300 border-yellow-300">
+                        @foreach ($topUsers as $index => $top)
+                            <div
+                                class="bg-white border border-yellow-300 rounded-xl shadow-lg p-5 text-center relative hover:scale-105 transition-transform duration-300">
+                                {{-- Badge for position --}}
                                 <div class="absolute -top-4 left-1/2 transform -translate-x-1/2">
-                                    @if($index === 0)
-                                        <span class="bg-yellow-400 text-white font-bold px-4 py-1 rounded-full shadow-lg sparkle">🥇</span>
+                                    @if ($index === 0)
+                                        <span
+                                            class="bg-yellow-400 text-white font-bold px-4 py-1 rounded-full shadow-lg sparkle">🥇</span>
                                     @elseif($index === 1)
-                                        <span class="bg-gray-400 text-white font-bold px-4 py-1 rounded-full shadow-lg">🥈</span>
+                                        <span
+                                            class="bg-gray-400 text-white font-bold px-4 py-1 rounded-full shadow-lg">🥈</span>
                                     @elseif($index === 2)
-                                        <span class="bg-orange-500 text-white font-bold px-4 py-1 rounded-full shadow-lg">🥉</span>
+                                        <span
+                                            class="bg-orange-500 text-white font-bold px-4 py-1 rounded-full shadow-lg">🥉</span>
                                     @endif
                                 </div>
+
+                                {{-- Student Name --}}
                                 <h3 class="mt-6 text-lg font-bold text-gray-800">{{ $top->name }}</h3>
-                                <p class="text-gray-700 mt-2">متوسط الدرجات: <strong>{{ number_format($top->average, 2) }}</strong></p>
-                                @if($index === 0)
+
+                                {{-- Level & Stage --}}
+                                <p class="text-gray-600 mt-1">
+                                    المستوى: <strong>{{ $top->level_name ?? 'غير محدد' }}</strong> |
+                                    المرحلة: <strong>{{ $top->stage_name ?? 'غير محددة' }}</strong>
+                                </p>
+
+                                {{-- Average Score --}}
+                                <p class="text-gray-700 mt-2">متوسط الدرجات:
+                                    <strong>{{ number_format($top->average, 2) }}</strong>
+                                </p>
+
+                                {{-- Crown / Sparkle for #1 --}}
+                                @if ($index === 0)
                                     <div class="mt-2 text-yellow-500 text-3xl sparkle">👑</div>
                                 @endif
                             </div>

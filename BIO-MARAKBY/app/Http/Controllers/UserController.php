@@ -6,6 +6,8 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\Lecture;
 use App\Models\Exam;
+use App\Models\Level;
+use App\Models\Stage;
 use App\Models\Subscription;
 use Carbon\Carbon;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -52,9 +54,7 @@ class UserController extends Controller
                 'user' => $user,
                 'subscription' => $subscription,
                 'enrolledCourse' => $enrolledCourse,
-                'stage' => $enrolledCourse?->stage,
-                'level' => $enrolledCourse?->level,
-                'topUsers' => $topUsers, // Pass top users
+                'topUsers' => $topUsers,
             ]);
         }
 
@@ -88,13 +88,18 @@ class UserController extends Controller
     {
         $this->authorize('viewAny', User::class);
 
-        $students = User::students()->with('enrolledCourse', 'subscription.course')->get();
-        // Update subscription statuses for all students
+        // Paginate students (e.g. 10 per page)
+        $students = User::students()
+            ->with('enrolledCourse', 'subscription.course')
+            ->paginate(10);
+
+        // Update subscription statuses for the students on this page
         foreach ($students as $student) {
             if ($student->subscription) {
                 $student->subscription->updateStatusBasedOnDates();
             }
         }
+
         return view('users.index', compact('students'));
     }
 
@@ -103,32 +108,65 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $courses = Course::published()->get();
-        return view('users.create', compact('courses'));
+        $levels = Level::all();
+        $stages = Stage::all();
+        return view('users.create', compact('courses', 'stages', 'levels'));
     }
 
     public function store(Request $request)
     {
         $this->authorize('create', User::class);
 
-        $validated = $request->validate([
+        $userRole = $request->input('role', 'student'); // default student
+
+        // Validation rules
+        $rules = [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'email', 'max:255', 'unique:users'],
             'password' => ['required', 'string', 'min:8', 'confirmed'],
-            'course_id' => ['nullable', Rule::exists('courses', 'id')->where('is_published', true)],
             'phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
             'parent_phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
-        ]);
+        ];
+
+        if ($userRole === 'student') {
+            // For students, course_id, stage_id, and level_id are required
+            $rules['stage_id'] = ['required', 'exists:stages,id'];
+            $rules['level_id'] = ['required', 'exists:levels,id'];
+            $rules['course_id'] = [
+                'required',
+                Rule::exists('courses', 'id')
+                    ->where(function ($query) use ($request) {
+                        $query->where('is_published', true)
+                            ->where('stage_id', $request->stage_id)
+                            ->where('level_id', $request->level_id);
+                    })
+            ];
+        } else {
+            // For other roles, optional course, stage, level
+            $rules['stage_id'] = ['nullable', 'exists:stages,id'];
+            $rules['level_id'] = ['nullable', 'exists:levels,id'];
+            $rules['course_id'] = [
+                'nullable',
+                Rule::exists('courses', 'id')
+                    ->where('is_published', true)
+            ];
+        }
+
+        $validated = $request->validate($rules);
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => 'student',
-            'course_id' => $validated['course_id'],
+            'course_id' => $validated['course_id'] ?? null,
             'phone_number' => $validated['phone_number'],
             'parent_phone_number' => $validated['parent_phone_number'],
+            'stage_id' => $validated['stage_id'] ?? null,
+            'level_id' => $validated['level_id'] ?? null,
         ]);
 
+        // Create subscription if course assigned
         if ($user->course_id) {
             $this->authorize('create', Subscription::class);
             $subscription = $user->subscription()->create([
@@ -141,8 +179,10 @@ class UserController extends Controller
             $subscription->updateStatusBasedOnDates();
         }
 
-        return redirect()->route('users.index')->with('success', "Student {$user->name} created successfully!");
+        return redirect()->route('users.index')
+            ->with('success', "Student {$user->name} created successfully!");
     }
+
 
     public function show(User $user)
     {
@@ -160,42 +200,66 @@ class UserController extends Controller
     {
         $this->authorize('update', $user);
         $courses = Course::where('is_published', true)->get();
-        return view('users.edit', compact('user', 'courses'));
+        $levels = Level::all();
+        $stages = Stage::all();
+        return view('users.edit', compact('user', 'courses', 'stages', 'levels'));
     }
 
     public function update(Request $request, User $user)
     {
-        $course=Course::find($user->course_id);
-        $validated = $request->validate([
+        $this->authorize('update', $user);
+
+        $rules = [
             'name' => 'required|string|max:255',
             'email' => 'required|email|max:255|unique:users,email,' . $user->id,
             'password' => 'nullable|string|min:8|confirmed',
             'role' => 'required|in:student,teacher',
-            'course_id' => 'nullable|exists:courses,id',
-            'subscription_type' => 'nullable|in:monthly,yearly',
-            'subscription_status' => 'nullable|in:active,expired,canceled',
-            'subscription_course_id' => 'nullable|exists:courses,id',
-            'subscription_start_date' => 'nullable|date',
-            'subscription_end_date' => 'nullable|date|after_or_equal:subscription_start_date',
             'phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
             'parent_phone_number' => ['required', 'regex:/^(010|011|012|015)[0-9]{8}$/'],
-        ]);
+        ];
 
-        // Update user details
+        // If role is student, require stage, level, and course
+        if ($request->input('role') === 'student') {
+            $rules['stage_id'] = ['required', 'exists:stages,id'];
+            $rules['level_id'] = ['required', 'exists:levels,id'];
+            $rules['course_id'] = [
+                'required',
+                Rule::exists('courses', 'id')
+                    ->where(function ($query) use ($request) {
+                        $query->where('is_published', true)
+                            ->where('stage_id', $request->stage_id)
+                            ->where('level_id', $request->level_id);
+                    })
+            ];
+            $rules['subscription_type'] = 'required|in:monthly,yearly';
+            $rules['subscription_status'] = 'nullable|in:active,expired,canceled';
+            $rules['subscription_start_date'] = 'nullable|date';
+            $rules['subscription_end_date'] = 'nullable|date|after_or_equal:subscription_start_date';
+            $rules['subscription_course_id'] = 'required|exists:courses,id';
+        } else {
+            // Teacher: course, stage, level optional
+            $rules['stage_id'] = 'nullable|exists:stages,id';
+            $rules['level_id'] = 'nullable|exists:levels,id';
+            $rules['course_id'] = 'nullable|exists:courses,id';
+        }
+
+        $validated = $request->validate($rules);
+
+        // Update user
         $user->update([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => $validated['password'] ? Hash::make($validated['password']) : $user->password,
             'role' => $validated['role'],
-            'course_id' => $validated['course_id'],
+            'course_id' => $validated['course_id'] ?? null,
+            'stage_id' => $validated['stage_id'] ?? null,
+            'level_id' => $validated['level_id'] ?? null,
             'phone_number' => $validated['phone_number'],
             'parent_phone_number' => $validated['parent_phone_number'],
-            'level' => $course ? $course->level : $user->level,
-            'stage' => $course ? $course->stage : $user->stage,
         ]);
 
-        // Update or create subscription for students
-        if ($validated['role'] === 'student' && $validated['subscription_type'] && $validated['subscription_course_id']) {
+        // Handle subscription for students
+        if ($validated['role'] === 'student') {
             $subscriptionData = [
                 'type' => $validated['subscription_type'],
                 'course_id' => $validated['subscription_course_id'],
@@ -210,12 +274,13 @@ class UserController extends Controller
             );
             $subscription->updateStatusBasedOnDates();
         } elseif ($user->subscription && $validated['role'] === 'teacher') {
-            // Delete subscription if user is changed to teacher
+            // Remove subscription if user is now teacher
             $user->subscription()->delete();
         }
 
         return redirect()->route('users.index')->with('success', 'User updated successfully.');
     }
+
 
     public function destroy(User $user)
     {
@@ -379,7 +444,7 @@ class UserController extends Controller
     {
         $user = Auth::user();
 
-        $query = User::where('role', 'student');
+        $query = User::query()->where('role', 'student');
 
         if ($search = $request->query('search')) {
             $query->where(function ($q) use ($search) {
@@ -388,8 +453,10 @@ class UserController extends Controller
             });
         }
 
-        $students = $query->with('enrolledCourse')->get();
-        // Update subscription statuses for searched students
+        // Eager load relationships for display
+        $students = $query->with(['enrolledCourse', 'subscription'])->paginate(15);
+
+        // Update subscription statuses
         foreach ($students as $student) {
             if ($student->subscription) {
                 $student->subscription->updateStatusBasedOnDates();

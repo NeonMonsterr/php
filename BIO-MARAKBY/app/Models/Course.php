@@ -32,16 +32,16 @@ class Course extends Model
         'user_id',
         'name',
         'description',
-        'stage',       // preparatory | secondary
-        'level',       // 1, 2, 3
+        'stage_id',       // preparatory | secondary
+        'level_id',       // 1, 2, 3
         'is_published',
     ];
 
     protected function casts(): array
     {
         return [
-            'stage' => 'string',
-            'level' => 'integer',
+            'stage_id' => 'integer',
+            'level_id' => 'integer',
             'is_published' => 'boolean',
         ];
     }
@@ -70,7 +70,15 @@ class Course extends Model
     {
         return $this->hasMany(User::class, 'course_id');
     }
+    public function stage()
+    {
+        return $this->belongsTo(Stage::class);
+    }
 
+    public function level()
+    {
+        return $this->belongsTo(Level::class);
+    }
     /*
     |--------------------------------------------------------------------------
     | Scopes
@@ -81,60 +89,10 @@ class Course extends Model
         return $query->where('is_published', true);
     }
 
-    public function scopePreparatory($query)
-    {
-        return $query->where('stage', 'preparatory');
-    }
-
-    public function scopeSecondary($query)
-    {
-        return $query->where('stage', 'secondary');
-    }
 
     /*
     |--------------------------------------------------------------------------
     | Helpers for Display
     |--------------------------------------------------------------------------
     */
-    public function getStageNameAttribute(): string
-    {
-        return match ($this->stage) {
-            'preparatory' => 'إعدادي',
-            'secondary'   => 'ثانوي',
-            default       => $this->stage,
-        };
-    }
-
-    public function getLevelNameAttribute(): string
-    {
-        return match ($this->level) {
-            1 => 'الأول',
-            2 => 'الثاني',
-            3 => 'الثالث',
-            default => (string) $this->level,
-        };
-    }
-
-    public function getFullStageLevelAttribute(): string
-    {
-        return $this->stage_name . ' ' . $this->level_name;
-    }
-    public function getStageArabicAttribute()
-{
-    return match($this->stage) {
-        'preparatory' => 'إعدادي',
-        'secondary'  => 'ثانوي',
-        default      => 'غير محدد',
-    };
-}
-
-public function getLevelArabicAttribute()
-{
-    return match((string) $this->level) {
-        '1' => 'أولى',
-        '2' => 'تانية',
-        '3' => 'تالتة',
-        default => 'غير محدد',
-    };
-}
 }

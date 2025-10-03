@@ -70,8 +70,9 @@ public function store(Request $request, Course $course)
     {
         $this->authorize('update', $course);
         $this->authorize('update', $lecture);
+        $courses=Course::all();
 
-        return view('lectures.edit', compact('course', 'lecture'));
+        return view('lectures.edit', compact('course', 'lecture','courses'));
     }
 
     /** Update lecture */
@@ -98,7 +99,7 @@ public function store(Request $request, Course $course)
         $this->authorize('delete', $lecture);
         $lecture->delete();
 
-        return redirect()->route('lectures.index', $course)
+        return redirect()->route('courses.show', [$course])
             ->with('success', 'تم حذف المحاضرة بنجاح!');
     }
 }

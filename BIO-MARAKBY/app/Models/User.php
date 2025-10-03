@@ -60,8 +60,8 @@ class User extends Authenticatable
         'course_id',
         'phone_number',
         'parent_phone_number',
-        'level',
-        'stage'
+        'level_id',
+        'stage_id'
     ];
 
 
@@ -106,6 +106,15 @@ class User extends Authenticatable
         return $this->belongsTo(Course::class, 'course_id');
     }
 
+    public function level()
+    {
+        return $this->belongsTo(Level::class, 'level_id');
+    }
+
+    public function stage()
+    {
+        return $this->belongsTo(Stage::class, 'stage_id');
+    }
 
     public function scopeTeachers($query)
     {

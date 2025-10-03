@@ -83,13 +83,13 @@
 
                 {{-- أخطاء التحقق --}}
                 @if ($errors->any())
-                <div class="mb-4 text-red-500 bg-red-50 border border-red-200 rounded-lg p-3">
-                    <ul class="list-disc list-inside">
-                        @foreach ($errors->all() as $error)
-                        <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
+                    <div class="mb-4 text-red-500 bg-red-50 border border-red-200 rounded-lg p-3">
+                        <ul class="list-disc list-inside">
+                            @foreach ($errors->all() as $error)
+                                <li>{{ $error }}</li>
+                            @endforeach
+                        </ul>
+                    </div>
                 @endif
 
                 <form method="POST" action="{{ route('courses.store') }}">
@@ -100,7 +100,7 @@
                         <label for="name" class="block text-gray-700 mb-2">الاسم</label>
                         <input type="text" name="name" id="name" value="{{ old('name') }}" required>
                         @error('name')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -109,34 +109,39 @@
                         <label for="description" class="block text-gray-700 mb-2">الوصف</label>
                         <textarea name="description" id="description" required>{{ old('description') }}</textarea>
                         @error('description')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
                     {{-- المرحلة --}}
                     <div class="mb-4">
-                        <label for="stage" class="block text-gray-700 mb-2">المرحلة</label>
-                        <select name="stage" id="stage" required>
-                            <option value="" disabled {{ old('stage') ? '' : 'selected' }}>اختر المرحلة</option>
-                            <option value="preparatory" {{ old('stage') == 'preparatory' ? 'selected' : '' }}>إعدادي</option>
-                            <option value="secondary" {{ old('stage') == 'secondary' ? 'selected' : '' }}>ثانوي</option>
+                        <label for="stage_id" class="block text-gray-700 mb-2">المرحلة</label>
+                        <select name="stage_id" id="stage_id" required>
+                            <option value="" disabled {{ old('stage_id') ? '' : 'selected' }}>اختر المرحلة</option>
+                            @foreach($stages as $stage)
+                                <option value="{{ $stage->id }}" {{ old('stage_id') == $stage->id ? 'selected' : '' }}>
+                                    {{ $stage->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('stage')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @error('stage_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
                     {{-- المستوى --}}
                     <div class="mb-4">
-                        <label for="level" class="block text-gray-700 mb-2">المستوى</label>
-                        <select name="level" id="level" required>
-                            <option value="" disabled {{ old('level') ? '' : 'selected' }}>اختر المستوى</option>
-                            <option value="1" {{ old('level') == '1' ? 'selected' : '' }}>الأول</option>
-                            <option value="2" {{ old('level') == '2' ? 'selected' : '' }}>الثاني</option>
-                            <option value="3" {{ old('level') == '3' ? 'selected' : '' }}>الثالث</option>
+                        <label for="level_id" class="block text-gray-700 mb-2">المستوى</label>
+                        <select name="level_id" id="level_id" required>
+                            <option value="" disabled {{ old('level_id') ? '' : 'selected' }}>اختر المستوى</option>
+                            @foreach($levels as $level)
+                                <option value="{{ $level->id }}" {{ old('level_id') == $level->id ? 'selected' : '' }}>
+                                    {{ $level->name }}
+                                </option>
+                            @endforeach
                         </select>
-                        @error('level')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                        @error('level_id')
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 
@@ -148,7 +153,7 @@
                             <span class="text-gray-700">نشر الدورة</span>
                         </label>
                         @error('is_published')
-                        <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
+                            <p class="text-red-500 text-sm mt-1">{{ $message }}</p>
                         @enderror
                     </div>
 

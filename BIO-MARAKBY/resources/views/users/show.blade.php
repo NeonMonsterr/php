@@ -85,15 +85,13 @@
                         </div>
 
                         <!-- المرحلة + المستوى -->
-                        @if ($enrolledCourse)
-                            <div class="bg-green-50 border border-green-200 p-4 rounded-lg shadow-sm">
-                                <p class="text-gray-600">🏫 المرحلة:</p>
-                                <p class="font-bold text-green-700">{{ $enrolledCourse->stage_arabic }}</p>
+                        <div class="bg-green-50 border border-green-200 p-4 rounded-lg shadow-sm">
+                            <p class="text-gray-600">🏫 المرحلة:</p>
+                            <p class="font-bold text-green-700">{{ $user->stage?->name ?? 'لا يوجد' }}</p>
 
-                                <p class="text-gray-600 mt-2">📖 المستوى:</p>
-                                <p class="font-bold text-green-700">{{ $enrolledCourse->level_arabic }}</p>
-                            </div>
-                        @endif
+                            <p class="text-gray-600 mt-2">📚 المستوى:</p>
+                            <p class="font-bold text-green-700">{{ $user->level?->name ?? 'لا يوجد' }}</p>
+                        </div>
 
                         <!-- الاشتراك -->
                         <div class="bg-purple-50 border border-purple-200 p-4 rounded-lg shadow-sm">

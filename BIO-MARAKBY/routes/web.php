@@ -5,11 +5,13 @@ use App\Http\Controllers\CourseController;
 use App\Http\Controllers\ExamController;
 use App\Http\Controllers\FileController;
 use App\Http\Controllers\LectureController;
+use App\Http\Controllers\LevelController;
 use App\Http\Controllers\QuestionController;
 use App\Http\Controllers\SectionController;
 use App\Http\Controllers\UserController;
 use App\Http\Controllers\WelcomeController;
 use App\Http\Controllers\RegisterController;
+use App\Http\Controllers\StageController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Foundation\Inspiring;
 use Illuminate\Support\Facades\Artisan;
@@ -94,8 +96,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/users/enroll', [UserController::class, 'enroll'])->name('users.enroll');
     Route::get('/users/subscription', [UserController::class, 'subscriptionForm'])->name('users.subscription.form');
     Route::post('/users/subscription', [UserController::class, 'updateSubscription'])->name('users.subscription');
-    Route::get('/users/teacher', [UserController::class, 'search'])->name('students.search');
-
+    Route::get('/students/search', [UserController::class, 'search'])->name('students.search');
     // Course routes
     Route::get('/courses', [CourseController::class, 'index'])->name('courses.index');
     Route::get('/courses/create', [CourseController::class, 'create'])->name('courses.create');
@@ -121,7 +122,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/courses/{course}/lectures/{lecture}/sections/{section}', [\App\Http\Controllers\SectionController::class, 'update'])->name('sections.update');
     Route::delete('/courses/{course}/lectures/{lecture}/sections/{section}', [\App\Http\Controllers\SectionController::class, 'destroy'])->name('sections.destroy');
     Route::get('/sections/{section}/download', [SectionController::class, 'download'])
-    ->name('sections.download')->middleware('auth');
+        ->name('sections.download')->middleware('auth');
     // Exam routes
     Route::get('/exams', [ExamController::class, 'index'])->name('exams.index');
     Route::get('/exams/create', [ExamController::class, 'create'])->name('exams.create');
@@ -130,4 +131,20 @@ Route::middleware('auth')->group(function () {
     Route::get('/exams/{exam}/edit', [ExamController::class, 'edit'])->name('exams.edit');
     Route::put('/exams/{exam}', [ExamController::class, 'update'])->name('exams.update');
     Route::delete('/exams/{exam}', [ExamController::class, 'destroy'])->name('exams.destroy');
+
+    // Levels routes
+    Route::get('/levels', [LevelController::class, 'index'])->name('levels.index');
+    Route::get('/levels/create', [LevelController::class, 'create'])->name('levels.create');
+    Route::post('/levels', [LevelController::class, 'store'])->name('levels.store');
+    Route::get('/levels/{level}', [LevelController::class, 'show'])->name('levels.show');
+    Route::get('/levels/{level}/edit', [LevelController::class, 'edit'])->name('levels.edit');
+    Route::put('/levels/{level}', [LevelController::class, 'update'])->name('levels.update');
+    Route::delete('/levels/{level}', [LevelController::class, 'destroy'])->name('levels.destroy');
+
+    // Stages nested inside levels
+    Route::get('/levels/{level}/stages/create', [StageController::class, 'create'])->name('stages.create');
+    Route::post('/levels/{level}/stages', [StageController::class, 'store'])->name('stages.store');
+    Route::get('/levels/{level}/stages/{stage}/edit', [StageController::class, 'edit'])->name('stages.edit');
+    Route::put('/levels/{level}/stages/{stage}', [StageController::class, 'update'])->name('stages.update');
+    Route::delete('/levels/{level}/stages/{stage}', [StageController::class, 'destroy'])->name('stages.destroy');
 });

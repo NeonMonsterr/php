@@ -329,6 +329,41 @@
                                     @enderror
                                 </div>
 
+                                <!-- Level Selection -->
+                                <div class="input-container">
+                                    <label for="level_id" class="floating-label">المستوى</label>
+                                    <select name="level_id" id="level_id" class="form-input w-full p-3.5 rounded-lg">
+                                        <option value="">اختر المستوى...</option>
+                                        @foreach($levels as $level)
+                                            <option value="{{ $level->id }}" {{ old('level_id', $user->level_id) == $level->id ? 'selected' : '' }}>
+                                                {{ $level->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('level_id')
+                                        <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                </div>
+
+                                <!-- Stage Selection -->
+                                <div class="input-container">
+                                    <label for="stage_id" class="floating-label">المرحلة</label>
+                                    <select name="stage_id" id="stage_id" class="form-input w-full p-3.5 rounded-lg">
+                                        <option value="">اختر المرحلة...</option>
+                                        @foreach($stages as $stage)
+                                            <option value="{{ $stage->id }}"
+                                                data-level="{{ $stage->level_id }}"
+                                                {{ old('stage_id', $user->stage_id) == $stage->id ? 'selected' : '' }}>
+                                                {{ $stage->name }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                    @error('stage_id')
+                                        <span class="text-red-500 text-xs mt-1 block">{{ $message }}</span>
+                                    @enderror
+                                    <p class="text-xs text-gray-500 mt-1">يرجى اختيار المستوى أولاً لعرض المراحل المتاحة</p>
+                                </div>
+
                                 <div class="input-container">
                                     <label for="phone_number" class="floating-label">رقم الهاتف</label>
                                     <input type="text" name="phone_number" id="phone_number" value="{{ old('phone_number', $user->phone_number) }}"
@@ -347,15 +382,16 @@
                                     @enderror
                                 </div>
 
-                                <!-- Merged Course Selection -->
+                                <!-- Courses Filtered by Stage + Level -->
                                 <div class="input-container md:col-span-2">
                                     <label for="course_id" class="floating-label">الدورة</label>
                                     <select name="course_id" id="course_id" class="form-input w-full p-3.5 rounded-lg">
                                         <option value="">اختر دورة...</option>
                                         @foreach($courses as $course)
                                             <option value="{{ $course->id }}"
-                                                {{ old('course_id', $user->course_id) == $course->id ? 'selected' : '' }}
-                                                data-type="user">
+                                                data-stage="{{ $course->stage_id }}"
+                                                data-level="{{ $course->level_id }}"
+                                                {{ old('course_id', $user->course_id) == $course->id ? 'selected' : '' }}>
                                                 {{ $course->name }}
                                             </option>
                                         @endforeach
@@ -513,6 +549,8 @@
             const subscriptionSection = document.getElementById('subscription-section');
             const courseSelect = document.getElementById('course_id');
             const subscriptionCourseSelect = document.getElementById('subscription_course_id');
+            const stageSelect = document.getElementById('stage_id');
+            const levelSelect = document.getElementById('level_id');
 
             function toggleSubscriptionSection() {
                 if (roleSelect.value === 'student') {
@@ -530,11 +568,60 @@
                 }
             }
 
+            // Filter stages based on selected level
+            function filterStages() {
+                const selectedLevel = levelSelect.value;
+
+                Array.from(stageSelect.options).forEach(option => {
+                    if (!option.value) return; // skip placeholder
+                    const level = option.dataset.level;
+                    option.style.display = (level === selectedLevel) ? 'block' : 'none';
+                });
+
+                // Reset selection if current stage not matching
+                const selectedStage = stageSelect.value;
+                const selectedOption = stageSelect.querySelector(`option[value="${selectedStage}"]`);
+                if (selectedOption && selectedOption.style.display === 'none') {
+                    stageSelect.value = '';
+                }
+
+                // Trigger course filter after stage reset
+                filterCourses();
+            }
+
+            // Filter courses based on selected stage and level
+            function filterCourses() {
+                const selectedStage = stageSelect.value;
+                const selectedLevel = levelSelect.value;
+
+                Array.from(courseSelect.options).forEach(option => {
+                    if (!option.value) return; // skip placeholder
+                    const stage = option.dataset.stage;
+                    const level = option.dataset.level;
+                    option.style.display = (stage === selectedStage && level === selectedLevel) ? 'block' : 'none';
+                });
+
+                // Reset selection if current course not matching
+                const selectedCourse = courseSelect.value;
+                const selectedOption = courseSelect.querySelector(`option[value="${selectedCourse}"]`);
+                if (selectedOption && selectedOption.style.display === 'none') {
+                    courseSelect.value = '';
+                }
+            }
+
             // Initial toggle based on current role
             toggleSubscriptionSection();
 
             // Add event listener for role changes
             roleSelect.addEventListener('change', toggleSubscriptionSection);
+
+            // Add event listeners for level and stage changes
+            levelSelect.addEventListener('change', filterStages);
+            stageSelect.addEventListener('change', filterCourses);
+
+            // Initial filter on page load
+            filterStages();
+            filterCourses();
 
             // Add phone number formatting
             const phoneInputs = document.querySelectorAll('input[type="text"][name*="phone"]');
