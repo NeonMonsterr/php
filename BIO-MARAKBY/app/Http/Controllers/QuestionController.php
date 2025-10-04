@@ -56,41 +56,35 @@ class QuestionController extends Controller
         $detailedResults = [];
 
         foreach ($questions as $question) {
-            $userAnswer = $userAnswers[$question->id] ?? null;
-            $isCorrect = false;
-            $isPending = false;
-            $questionPoints = $question->points ?? 1;
+    $userAnswer = $userAnswers[$question->id] ?? null;
+    $isCorrect = false;
+    $isPending = false;
+    $questionPoints = $question->points ?? 1;
 
-            $totalPossibleScore += $questionPoints;
+    $totalPossibleScore += $questionPoints;
 
-            if ($question->type === 'mcq') {
-                $correctOption = $question->options->where('is_correct', true)->first();
-                if ($userAnswer && $correctOption && $userAnswer->option_id == $correctOption->id) {
-                    $isCorrect = true;
-                    $correctAnswers++;
-                    $totalScore += $userAnswer->score ?? $questionPoints;
-                }
-            } elseif ($question->type === 'essay') {
-                if ($userAnswer) {
-                    $isPending = $userAnswer->score === null;
-                    $isCorrect = $userAnswer->score > 0;
-                    if ($userAnswer->score !== null) {
-                        $totalScore += $userAnswer->score;
-                    }
-                    if ($isCorrect) {
-                        $correctAnswers++;
-                    }
-                }
-            }
-
-            $detailedResults[] = [
-                'question' => $question,
-                'userAnswer' => $userAnswer,
-                'correctOption' => $correctOption ?? null,
-                'isCorrect' => $isCorrect,
-                'isPending' => $isPending,
-            ];
+    if ($userAnswer) {
+        if ($question->type === 'mcq') {
+            $correctOption = $question->options->where('is_correct', true)->first();
+            $isCorrect = $userAnswer->score > 0;
+            $totalScore += $userAnswer->score ?? 0;
+            if ($isCorrect) $correctAnswers++;
+        } elseif ($question->type === 'essay') {
+            $isPending = $userAnswer->score === null;
+            $isCorrect = $userAnswer->score > 0;
+            $totalScore += $userAnswer->score ?? 0;
+            if ($isCorrect) $correctAnswers++;
         }
+    }
+
+    $detailedResults[] = [
+        'question' => $question,
+        'userAnswer' => $userAnswer,
+        'correctOption' => $correctOption ?? null,
+        'isCorrect' => $isCorrect,
+        'isPending' => $isPending,
+    ];
+}
 
         return view('exams.result', compact(
             'exam',

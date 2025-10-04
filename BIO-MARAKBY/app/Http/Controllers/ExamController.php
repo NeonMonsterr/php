@@ -29,7 +29,7 @@ class ExamController extends Controller
         $this->authorize('viewResults', $exam);
 
         $students = $exam->course?->students()->get();
-        $questions = $exam->questions()->with(['options', 'essayAnswer'])->get();
+        $questions = $exam->questions()->with('options')->get();
 
         $results = [];
 
@@ -38,12 +38,11 @@ class ExamController extends Controller
                 ->where('user_id', $student->id)
                 ->first();
 
-            $detailedAnswers = [];
-
             if (!$attempt) {
                 $results[] = [
                     'student' => $student,
                     'score' => null,
+                    'totalPossibleScore' => $questions->sum(fn($q) => $q->points ?? 1),
                     'answers' => [],
                 ];
                 continue;
@@ -54,36 +53,48 @@ class ExamController extends Controller
                 ->get()
                 ->keyBy('question_id');
 
+            $totalScore = 0;
+            $totalPossibleScore = 0;
+            $detailedAnswers = [];
+
             foreach ($questions as $question) {
                 $userAnswer = $userAnswers[$question->id] ?? null;
                 $isCorrect = false;
                 $isPending = false;
+                $questionPoints = $question->points ?? 1;
 
-                if ($question->type === 'mcq') {
-                    $correctOption = $question->options->where('is_correct', true)->first();
-                    $isCorrect = $userAnswer && $correctOption && $userAnswer->option_id == $correctOption->id;
-                } elseif ($question->type === 'essay') {
-                    $isPending = $userAnswer && $userAnswer->score === null;
-                    $isCorrect = $userAnswer && $userAnswer->score > 0;
+                $totalPossibleScore += $questionPoints;
+
+                if ($userAnswer) {
+                    if ($question->type === 'mcq') {
+                        $isCorrect = $userAnswer->score > 0;
+                        $totalScore += $userAnswer->score ?? 0;
+                    } elseif ($question->type === 'essay') {
+                        $isPending = $userAnswer->score === null;
+                        $isCorrect = !$isPending && $userAnswer->score > 0;
+                        $totalScore += $userAnswer->score ?? 0;
+                    }
                 }
 
                 $detailedAnswers[$question->id] = [
-                    'question' => $question,
+                    'question'   => $question,
                     'userAnswer' => $userAnswer,
-                    'isCorrect' => $isCorrect,
-                    'isPending' => $isPending,
+                    'isCorrect'  => $isCorrect,
+                    'isPending'  => $isPending,
                 ];
             }
 
             $results[] = [
                 'student' => $student,
-                'score' => $attempt->score, // Use ExamAttempt->score directly
+                'score' => $totalScore,
+                'totalPossibleScore' => $totalPossibleScore,
                 'answers' => $detailedAnswers,
             ];
         }
 
         return view('exams.allresult', compact('exam', 'results'));
     }
+
 
     public function index()
     {
