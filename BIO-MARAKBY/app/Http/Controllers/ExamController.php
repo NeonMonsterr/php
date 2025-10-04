@@ -91,16 +91,20 @@ class ExamController extends Controller
         $this->authorize('viewAny', Exam::class);
 
         if ($user->role === 'teacher') {
-            $exams = Exam::with('course')->orderBy('exam_date')->get();
+            // Get all courses with exams ordered by exam_date
+            $courses = Course::with(['exams' => function ($query) {
+                $query->orderBy('exam_date');
+            }])->orderBy('name')->get();
         } else {
-            $exams = Exam::where('course_id', $user->course_id)
-                ->published()
-                ->with('course')
-                ->orderBy('exam_date')
+            // Student: only their course with published exams
+            $courses = Course::where('id', $user->course_id)
+                ->with(['exams' => function ($query) {
+                    $query->published()->orderBy('exam_date');
+                }])
                 ->get();
         }
 
-        return view('exams.index', compact('exams', 'user'));
+        return view('exams.index', compact('courses', 'user'));
     }
 
     public function create()
